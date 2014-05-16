@@ -483,7 +483,7 @@ if values.up==1
   timd = vd(:,1,v.tim)';
   timu = vu(:,1,v.tim)';
 
-  if isfield(params,'up2down_time_offset')
+  if isprop(params,'up2down_time_offset')
      timu = timu+params.up2down_time_offset/86400;
   end
 
@@ -945,7 +945,7 @@ for n=1:size(l.tim,1)
 
   time_greg = gregoria(l.tim(n,:));
   if time_greg(1)==1900
-    if isfield(params,'correct_year')
+    if isprop(params,'correct_year')
       time_greg(:,1) = params.correct_year;
     else
       disp('>   Found Narrowband with wrong year.')

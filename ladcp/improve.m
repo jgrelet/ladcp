@@ -111,7 +111,7 @@ data = cutstruct(data,ind);
 %
 % fix problems with switched beams on instrument
 %
-if isfield(params,'beam_switch')==1
+if isprop(params,'beam_switch')
   [data,params,values] = misc_switchbeams(data,params,values);
 end
 

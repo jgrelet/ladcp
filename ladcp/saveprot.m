@@ -45,7 +45,7 @@ fprintf(fid,'%s \n',strlon);
 fprintf(fid,'End position         : %s   ',strlat);
 fprintf(fid,'%s \n',strlon);
 fprintf(fid,'Magnetic deviation   : %f \n',values.magdev);
-if isfield(p,'timoff')
+if isprop(p,'timoff')
   fprintf(fid,'Time offset          : %f \n',p.timoff);
 else
   fprintf(fid,'Time offset          : 0.0 \n',[]);

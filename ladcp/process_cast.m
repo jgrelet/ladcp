@@ -41,9 +41,15 @@ end
 % Initialize the processing by loading parameters
 % and make sure that we have no leftovers from previous processings
 %
-default_params;
-cruise_params;
-cast_params;
+% default_params;
+% cruise_params;
+% cast_params;
+p = default_p_object;
+f = default_f_object(stn_str);
+ps = default_ps_object;
+
+messages.warn = 'LADCP WARNINGS';
+messages.warnp = 'LADCP processing warnings: ';
 
 global pathFile;
 % 

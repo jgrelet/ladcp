@@ -110,7 +110,7 @@ end
 
 ylabel('range [m]')
 xlabel('ensemble')
-if isfield(params,'name')
+if isprop(params,'name')
   streamer([params.name,' Figure 2']);
 end
 title(' W as function of bindepth and time')

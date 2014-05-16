@@ -16,3 +16,5 @@ delete(['data/ctdprof/ctdprof',stn_str,'.mat'])
 delete(['data/ctdtime/ctdtime',stn_str,'.mat'])
 delete(['data/nav/nav',stn_str,'.mat'])
 delete(['data/sadcp/sadcp',stn_str,'.mat'])
+delete(['data/raw_ladcp/',stn_str,'/*.000'])
+

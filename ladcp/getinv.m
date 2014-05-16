@@ -127,7 +127,7 @@ d = reshape(d,nbin*nt,1);
 %
 % bottom track velocity
 %
-if isfield(p,'zbottom');
+if isprop(p,'zbottom');
   bvel = di.bvel(1,:)+sqrt(-1)*di.bvel(2,:);
   bvels = sqrt(di.bvels(1,:).^2+di.bvels(2,:).^2);
   if sum(ps.btrk_weight_nblen) > 0
@@ -270,7 +270,7 @@ end
 %
 % remove last data bin  and one bin off the bottom and surface 
 %
-if isfield(p,'zbottom'),
+if isprop(p,'zbottom'),
   zbottom = p.zbottom;
 else
   zbottom = 1e32;

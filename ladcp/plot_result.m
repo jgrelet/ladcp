@@ -20,7 +20,7 @@ else
   zpmax = values.maxdepth + nmax([0;dr.range]);
 end
 
-if isfield(p,'zbottom')
+if isprop(p,'zbottom')
   if isfinite(p.zbottom)
     zpmax = p.zbottom;
   end

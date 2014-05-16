@@ -9,7 +9,7 @@ function  [d,p,values] = misc_switchbeams(d,p,values)
 % 
 %
 disp('SWITCHBEAMS: ******** switch beams ***********')
-if isfield(p,'beam_switch')==0
+if isprop(p,'beam_switch')==0
  disp(' need to give switch matix p.beam_switch ')
  return
 end

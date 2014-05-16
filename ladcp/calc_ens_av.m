@@ -43,7 +43,7 @@ avpercent = 100;
 %
 % hmm don't know, what this is good for  GK
 %
-if isfield(p,'override_Single_Ping_Err')
+if isprop(p,'override_Single_Ping_Err')
   d.down.Single_Ping_Err = p.override_Single_Ping_Err;
 end
 p = setdefv(p,'superens_std_min',...
