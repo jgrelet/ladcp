@@ -108,12 +108,14 @@ fclose(fid);
 % First, initialize the header to an array of spaces.
 header = setstr(' '*ones(no_lines, max_line));
 for i = 1:no_lines
-  varname = ['line' num2str(i)];
+  eval(['line = line',num2str(i),';']); 
   % Note that we only assign this line variable to a subset of this
   % row of the header array.  We thus ensure that the matrix sizes in
   % the assignment are equal.
-  eval(['header(i, 1:length(' varname ')) = ' varname ';']);
+  if ~isempty(line)
+      header(i,1:length(line)) = line;
   end
+end
 
 % Resize output data, based on the number of columns (as returned
 % from the sscanf of the first line of data) and the total number of

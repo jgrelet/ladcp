@@ -63,7 +63,7 @@ end
 %
 % cross correlate data
 %
-[res,reslag] = xcorr(a1,a2,nlag);
+[res,reslag] = xcorr(a1-mean(a1),a2-mean(a2),nlag);
 [dummy,resind] = nmax(res);
 reslag = reslag(resind);
 

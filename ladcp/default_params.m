@@ -26,23 +26,8 @@ nav_dir         = 'data/nav';
 sadcp_dir       = 'data/sadcp';
 
 % file names
-stn_fmt         = '%03d';
-dn_file_fmt     = '%03dDN000.000';
-up_file_fmt     = '%03dUP000.000';
-f.ladcpdo = sprintf([raw_dir '/' stn_fmt '/' dn_file_fmt],stn,stn);
-%  FM -IRD - June 2011
-%if (~exist(f.ladcpdo,'file')) 
-%   dn_file_fmt     = '%03ddn000.000';
-%   f.ladcpdo = sprintf([raw_dir '/' stn_fmt '/' dn_file_fmt],stn,stn);
-%end;
-% FM - IRD - June 2011
-f.ladcpup = sprintf([raw_dir '/' stn_fmt '/' up_file_fmt],stn,stn);
-% FM - IRD - June 2011
-%if (~exist(f.ladcpup,'file'))
-%   up_file_fmt     = '%03dup000.000';
-%   f.ladcpup = sprintf([raw_dir '/' stn_fmt '/' dn_file_fmt],stn,stn);
-%end;
-% FM - IRD - June 2011
+f.ladcpdo = [raw_dir '/' stn_str '/' stn_str,'DN000.000'];
+f.ladcpup = [raw_dir '/' stn_str '/' stn_str,'UP000.000'];
 
 % check for multiple file cases
 count = 1;
@@ -68,14 +53,14 @@ while exist(f.ladcpup(end,:),'file')
   end
 end
 
-f.res = sprintf([prof_dir '/' stn_fmt],stn);
-f.prof = sprintf([prof_dir '/' stn_fmt],stn);
-f.plots = sprintf([plots_dir '/' stn_fmt],stn);
-f.log = sprintf([logs_dir '/' stn_fmt],stn);
-f.nav = ['data/nav/nav',int2str0(stn,3),'.mat'];
-f.ctdprof = ['data/ctdprof/ctdprof',int2str0(stn,3),'.mat'];
-f.ctdtime = ['data/ctdtime/ctdtime',int2str0(stn,3),'.mat'];
-f.sadcp = ['data/sadcp/sadcp',int2str0(stn,3),'.mat'];
+f.res = [prof_dir '/' stn_str];
+f.prof = [prof_dir '/' stn_str];
+f.plots = [plots_dir '/' stn_str];
+f.log = [logs_dir '/' stn_str];
+f.nav = ['data/nav/nav',stn_str,'.mat'];
+f.ctdprof = ['data/ctdprof/ctdprof',stn_str,'.mat'];
+f.ctdtime = ['data/ctdtime/ctdtime',stn_str,'.mat'];
+f.sadcp = ['data/sadcp/sadcp',stn_str,'.mat'];
 
 % file name for results (extensions will be added by software)
 %  *.bot            bottom referenced ASCII data
@@ -98,7 +83,7 @@ params.time_end = [];
 %
 % store station number
 %
-params.ladcp_station = stn;
+params.ladcp_station = stn_str;
 
 
 % restrict time range to profile and disregard data close to surface
@@ -251,6 +236,14 @@ params.surfdist = 1;
 %
 params.magdev = 0;
 
+%
+%  time offset between upward-looking and downward-looking L-ADCPs
+%	>0 means down is in advance with respect to up
+%	<0 means up is in advance with respect to down
+%  this parameter may be necessary only when the 2 L-ADCP are not synchronized
+%
+params.up2down_time_offset = 0;
+
 
 %
 % COMPASS manipulation
@@ -273,7 +266,7 @@ params.fix_compass = 0;
 %
 % params.up2down==1 will resample the uplooker onto the downlooker
 %
-params.up2down = 1;
+params.up2down = 0;
 
 %
 % give compass offset in addition to declination (1) for down (2) for up
@@ -513,7 +506,7 @@ ps = setdefv(ps,'down_up',1);
 ps.smoofac = 0;
 
 % Request that shears are small  (experts only)
-%ps=setdefv(ps,'smallfac',[1,0]);
+ps = setdefv(ps,'smallfac',[1 0]);
 
 % weight bottom track data with distance of bottom
 %  use Gaussian with offset (btrk_weight_nblen(1) * bin)

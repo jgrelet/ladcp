@@ -120,7 +120,7 @@ end
 % fix problems with a compass
 %
 if params.fix_compass>0
-  [data,params] = misc_fixcompass(data,params);
+  [data,params] = misc_fix_compass(data,params);
 end
 
 

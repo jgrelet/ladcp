@@ -185,6 +185,10 @@ if dd.Coordinates==0
   end
   veld = b2earth(veld,vd,dd);
 end
+% check the orientation
+if dd.Up~=0
+  disp('>   Detected upward-looking instrument');
+end
 
 % check for 1200kHz WH
 if dd.Frequency==1200
@@ -362,6 +366,10 @@ if values.up==1
     velu = b2earth(velu,vu,du);
   end
   %
+  % check that up is upward-looking
+  if (du.Up~=1)
+     disp('>   Detected downward-looking instrument');
+  end
   
   % check for 1200kHz WH
   if du.Frequency==1200
@@ -475,12 +483,15 @@ if values.up==1
   timd = vd(:,1,v.tim)';
   timu = vu(:,1,v.tim)';
 
+  if isfield(params,'up2down_time_offset')
+     timu = timu+params.up2down_time_offset/86400;
+  end
+
   if abs(nmax(diff(timd))+nmax(-diff(timd))) > 0.05/24/3600
     warn=('>   Ping rate varies in down instrument');
     disp(warn)
     disp(['>   Min down ping rate :',num2str(-86400*nmax(-diff(timd))),...
        '  max down ping rate :',num2str(86400*nmax(diff(timd)))])
-
   end
 
   if  abs(nmedian(diff(timd))-nmedian(diff(timu))) > 0.05/24/3600
@@ -490,34 +501,77 @@ if values.up==1
     disp(['>   Avg down ping rate :',num2str(86400*nmean(diff(timd))),...
          '  avg up ping rate :',num2str(86400*nmean(diff(timu)))])
 
-    if params.up2down==1
-      disp(['>   Resampling up instrument to down instrument''s timing.'])
-      iu = [1:length(timd)];
-      ii = find(iu>length(timu));
-      iu(ii) = length(timu);
-      for i=find(isfinite(timd))
+    if params.up2down==0
+       if nmean(diff(timu))>nmean(diff(timd))
+          params.up2down==1;
+       else
+          params.up2down==2;
+       end
+     end
+  end
+
+  id = [1:length(timd)];
+  iu = [1:length(timu)];
+  if params.up2down==1
+     disp(['>   Resampling up instrument to down instrument''s timing.'])
+     iu = [1:length(timd)];
+     ii = find(iu>length(timu));
+     iu(ii) = length(timu);
+     for i=find(isfinite(timd))
         [m,iu(i)] = min(abs(timu-timd(i)));
-      end
-      ilast = min(length(iu),length(timu));
-      disp(['>   Cast ends now differ by ',num2str(iu(ilast)-ilast),...
-          ' ensembles'])
-      id = [1:length(timd)];
-    else
-      disp(['>   Resampling down instrument to up instrument''s timing.'])
-      id = [1:length(timu)];
-      ii = find(id>length(timd));
-      id(ii) = length(timd);
-      for i=find(isfinite(timu))
-        [m,id(i)] = min(abs(timd-timu(i)));
-      end
-      ilast = min(length(id),length(timd));
-      disp(['>   Cast ends now differ by ',num2str(id(ilast)-ilast),...
-          ' ensembles'])
-      iu = [1:length(timu)];
-    end
-  else
-    id = [1:length(timd)];
-    iu = [1:length(timu)];
+     end
+%    ilast = min(length(iu),length(timu));
+%    disp(['>   Cast ends now differ by ',num2str(iu(ilast)-ilast),...
+%          ' ensembles'])
+     % only keep data for which the difference between timd and timu
+     % does not exceed 1 second
+     inan = find( abs(timd-timu(iu))>1/86400 );
+     vu = vu(iu,:,:);
+     vu(inan,:,:) = nan;
+     velu = velu(iu,:,:);
+     velu(inan,:,:) = NaN;   
+     eau = eau(iu,:,:);
+     eau(inan,:,:) = NaN;
+     cmu = cmu(iu,:,:);
+     cmu(inan,:,:) = NaN; 
+     pgu = pgu(iu,:,:);
+     pgu(inan,:,:) = NaN;
+     btu = btu(iu,:,:);
+     btu(inan,:,:) = NaN;
+     iu = [1:length(timd)];
+     % downward-looking time is set to downward-looking 
+     %  (required to prevent the occurrence of NaNs)
+     vu(:,1,v.tim) = timd;
+  elseif params.up2down==2
+     disp(['>   Resampling down instrument to up instrument''s timing.'])
+     id = [1:length(timu)];
+     ii = find(id>length(timd));
+     id(ii) = length(timd);
+     for i=find(isfinite(timu))
+       [m,id(i)] = min(abs(timd-timu(i)));
+     end
+%    ilast = min(length(id),length(timd));
+%    disp(['>   Cast ends now differ by ',num2str(id(ilast)-ilast),...
+%          ' ensembles'])
+     % only keep data for which the difference between timd and timu
+     % does not exceed 1 second
+     inan = find( abs(timu-timd(id))>1/86400 );
+     vd = vd(id,:,:);
+     vd(inan,:,:) = nan;
+     veld = veld(id,:,:);
+     veld(inan,:,:) = NaN;
+     ead = ead(id,:,:);
+     ead(inan,:,:) = NaN;
+     cmd = cmd(id,:,:);
+     cmd(inan,:,:) = NaN;
+     pgd = pgd(id,:,:);
+     pgd(inan,:,:) = NaN;
+     btd = btd(id,:,:);
+     btd(inan,:,:) = NaN;
+     id = [1:length(timu)];
+     % upward-looking time is set to downward-looking 
+     %  (required to prevent the occurrence of NaNs)
+     vd(:,1,v.tim) = timu;
   end
 
 
@@ -533,7 +587,7 @@ if values.up==1
   [lag1,iiu1,id1,co1] = bestlag(wb2u,wb2d,params.maxlag);
   zeit = toc;
   tic;
-  if params.up2down==1
+  if params.up2down==0 | params.up2down==1
     [lag,iiu,id,co] = bestlag2(wb2u,wb2d);
   else
     [lag,iu,iid,co] = bestlag2(wb2u,wb2d);
@@ -583,9 +637,9 @@ if 0
 else
     disp(['    Shifting ADCP timeseries by ',num2str(lag),' ensembles']);
     disp(['    Time-lag: ',num2str(lag),'  correlation: ',num2str(co)])
-    if params.up2down==1
+    if params.up2down==0 | params.up2down==1
       iu = iu(iiu);
-    else
+    elseif params.up2down==2
       id = id(iid);
     end
 end

@@ -58,9 +58,12 @@ disp(['    Will use ',int2str(is2/is1*100),' % of data '])
 %
 % disp(['  compute central diff shear '])
 iiok = [1:length(d.z)];
-us = [NaN*d.ru(1,iiok);diff2(d.ru(:,iiok))./diff2(d.izm);NaN*d.ru(1,iiok)].*w;
-vs = [NaN*d.rv(1,iiok);diff2(d.rv(:,iiok))./diff2(d.izm);NaN*d.rv(1,iiok)].*w;
-ws = [NaN*d.rw(1,iiok);diff2(d.rw(:,iiok))./diff2(d.izm);NaN*d.rw(1,iiok)].*w;
+%us = [NaN*d.ru(1,iiok);diff2(d.ru(:,iiok))./diff2(d.izm);NaN*d.ru(1,iiok)].*w;
+%vs = [NaN*d.rv(1,iiok);diff2(d.rv(:,iiok))./diff2(d.izm);NaN*d.rv(1,iiok)].*w;
+%ws = [NaN*d.rw(1,iiok);diff2(d.rw(:,iiok))./diff2(d.izm);NaN*d.rw(1,iiok)].*w;
+us = [NaN*d.ru(1,iiok);diff2(d.ru(:,iiok).*w)./diff2(d.izm);NaN*d.ru(1,iiok)];
+vs = [NaN*d.rv(1,iiok);diff2(d.rv(:,iiok).*w)./diff2(d.izm);NaN*d.rv(1,iiok)];
+ws = [NaN*d.rw(1,iiok);diff2(d.rw(:,iiok).*w)./diff2(d.izm);NaN*d.rw(1,iiok)];
 
 
 %
@@ -144,7 +147,6 @@ end
 ds.usm = replace( ds.usm, isnan(ds.usm), 0 );
 ds.vsm = replace( ds.vsm, isnan(ds.vsm), 0 );
 ds.wsm = replace( ds.wsm, isnan(ds.wsm), 0 );
-
 
 ds.ur = flipud(cumsum(flipud(ds.usm)))*idz;
 ds.vr = flipud(cumsum(flipud(ds.vsm)))*idz;

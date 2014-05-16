@@ -35,9 +35,6 @@ function [hdr,data,hdr1,data1] = read_sbe_cnv(fname,start_scan);
 % hdr.badflag now a number              GK, 14.01.2009  0.9-->0.10
 % 'turn off' pump 20 scans earlier      GK, 17.01.2009  0.10-->0.11
 
-% FM - IRD - JUNE 2011
-% read also timeS if available in CTD file
-% FM - IRD - JUNE 2011
 
 %
 % give help
@@ -71,15 +68,25 @@ end
 %
 % parse Seabird header
 %
-hdr.nmea_lat_str = extract_string('* NMEA Latitude =',hdr1);
-hdr.nmea_lon_str = extract_string('* NMEA Longitude =',hdr1);
-hdr.nmea_utc_str = extract_string('* NMEA UTC (Time) =',hdr1);
+hdr.nmea_lat_str = extract_string('**  NMEA Latitude =',hdr1);
+if isempty(hdr.nmea_lat_str)
+   hdr.nmea_lat_str = extract_string('* NMEA Latitude =',hdr1);
+end
+hdr.nmea_lon_str = extract_string('**  NMEA Longitude =',hdr1);
+if isempty(hdr.nmea_lon_str)
+   hdr.nmea_lon_str = extract_string('* NMEA Longitude =',hdr1);
+end
+hdr.nmea_utc_str = extract_string('**  NMEA UTC (Time) =',hdr1);
+if isempty(hdr.nmea_utc_str)
+   hdr.nmea_utc_str = extract_string('* NMEA UTC (Time) =',hdr1);
+end
 hdr.lat = extract_string('** Latitude :',hdr1);
 hdr.lon = extract_string('** Longitude :',hdr1);
 hdr.station = extract_string('** Station :',hdr1);
 hdr.waterdepth = extract_string('** Water Depth :',hdr1);
 hdr.badflag = str2num(extract_string('# bad_flag =',hdr1));
 hdr.system_upload = extract_string('* System UpLoad Time =',hdr1);
+hdr.start_time    = extract_string('# start_time =',hdr1);
 if isempty(hdr.nmea_lat_str)
   hdr.nmea_lat = [];
   hdr.nmea_lon = [];
@@ -93,16 +100,18 @@ end
 %
 % parse System Upload Time
 %
-strs = {'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'};
-dat = hdr.system_upload;
-dummy(2) = strmatch(dat(1:3),strs);
-dummy(1) = sscanf(dat(8:11),'%d')';
-dummy(3) = sscanf(dat(5:6),'%d')';
-dummy(4) = sscanf(dat(13:14),'%d')';
-dummy(5) = sscanf(dat(16:17),'%d')';
-dummy(6) = sscanf(dat(19:20),'%d')';
-hdr.system_upload_datenum = datenum(dummy);
-hdr.system_upload_day = datenum(dummy.*[0,1,1,0,0,0]);
+hdr.system_upload = hdr.system_upload(1:20);
+dat = datenum(hdr.system_upload,'mmm dd yyyy HH:MM:SS');
+hdr.system_upload_datenum = dat;
+hdr.system_upload_day = datenum(dat.*[0,1,1,0,0,0]);
+
+%
+%  parse System Start Time
+%
+hdr.start_time = hdr.start_time(1:20);
+dat = datenum(hdr.start_time,'mmm dd yyyy HH:MM:SS');
+hdr.start_time_datenum = dat;
+hdr.start_time_day = datenum(dat.*[0,1,1,0,0,0]);
 
 
 %
@@ -131,7 +140,8 @@ for n=0:30
     % check whether the new variable is a standard one
     % if so, extract the data
     %
-    if ~isempty(findstr(fld,'prDM'))
+    %if ~isempty(findstr(fld,'prDM'))
+    if ~isempty(findstr(fld,'prDM')) | ~isempty(findstr(fld,'prSM'))
         data.p = data1(:,n+1);
     elseif ~isempty(findstr(fld,'sal00'))
         data.s_pri = data1(:,n+1);
@@ -291,31 +301,42 @@ end
 % also interpolate Seabird's time so that it is continuous and
 % not always 2 same-times after another (too few digits in timej)
 %
+if isfield(data,'timej') | isfield(data,'times')
 if ~isempty(hdr.nmea_utc)
-  if isfield(data,'times')
-     data.datenum = datenum(hdr.nmea_utc) + data.times/86400;
-     data.timej = hdr.system_upload_day + data.times/86400;
-  else
-     data.datenum = data.timej-hdr.system_upload_day + datenum(hdr.nmea_utc(1:3));
-  end
-  d1 = hdr.system_upload_datenum-datenum(datevec(hdr.system_upload_datenum).*...
-    [1,0,0,0,0,0]);
-  d2 = datenum(hdr.nmea_utc)-datenum([hdr.nmea_utc(1),0,0,0,0,0]);
-  if abs(d1-d2)>1/1440
-    fprintf(1,'\n',[]);
-    disp(datestr(d1,31))
-    disp(datestr(d2,31))
-    warning('NMEA and CTD computer time differ by more than 1 minute')
-    data.timej = data.timej-hdr.system_upload_day + datenum([0,hdr.nmea_utc(2:3)]);
-  end
-  jump = find(diff(data.datenum(:)')>1e-5);
-  lim = [[1,jump];[jump+1,length(data.datenum)]];
-  for n=1:size(lim,2)
-      data.datenum(lim(1,n):lim(2,n)) = linspace(data.datenum(lim(1,n)),...
-           data.datenum(lim(2,n)),lim(2,n)-lim(1,n)+1);
-  end
+   d1 = hdr.start_time_datenum-datenum(datevec(hdr.start_time_datenum).*...
+     [1,0,0,0,0,0]);
+   d2 = datenum(hdr.nmea_utc)-datenum([hdr.nmea_utc(1),0,0,0,0,0]);
+   if isfield(data,'times')
+     data.datenum = datenum(hdr.start_time) + data.times/86400;
+   else
+     data.datenum = data.timej-hdr.start_time_day + datenum(hdr.nmea_utc(1:3));
+   end
+   if abs(d1-d2)>1/1440
+     fprintf(1,'\n',[]);
+     disp(datestr(d1,31));
+     disp(datestr(d2,31));
+     warning('NMEA and CTD computer time differ by more than 1 minute')
+     warning('correct CTD computer time with NMEA time');
+     data.timej = data.timej-hdr.start_time_day + datenum([0,hdr.nmea_utc(2:3)]);
+   end
 else
-  warning('no NMEA data in header, proper time handling not implemented!')
+   disp('no NMEA data in header, proper time handling not implemented!')
+   if isfield(data,'times')
+     data.datenum = datenum(hdr.start_time) + data.times/86400;
+   else
+     data.datenum = data.timej-hdr.start_time_day + datenum(hdr.start_time(1:3));
+   end
+end
+% check that CTD time is monotonous
+dt = data.datenum(2:end)-data.datenum(1:end-1);
+ind = find(dt<=0);
+if ~isempty(ind)
+   disp(' CTD time is not montonous - need to correct the following times');
+   for i=1:length(ind)
+       disp(['   ',num2str(data.timej(ind(i)))]);
+   end
+   error(' ');
+end
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -356,15 +377,10 @@ if isfield(hdr,'nmea_lon_str')
     hdr.nmea_lon = -dummy(1)-dummy(2)/60;
   end
 end
-if isfield(hdr,'nmea_utc_str')
-  strs = {'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'};
-  dat = hdr.nmea_utc_str;
-  dummy(2) = strmatch(dat(1:3),strs);
-  dummy(1) = sscanf(dat(8:11),'%d')';
-  dummy(3) = sscanf(dat(5:6),'%d')';
-  dummy(4) = sscanf(dat(14:15),'%d')';
-  dummy(5) = sscanf(dat(17:18),'%d')';
-  dummy(6) = sscanf(dat(20:21),'%d')';
-  hdr.nmea_utc_datenum = datenum(dummy);
-  hdr.nmea_utc = dummy;
+if isfield(hdr,'nmea_utc_str') & length(hdr.nmea_utc_str)>=20
+  hdr.nmea_utc_datenum = datenum(hdr.nmea_utc_str,'mmm dd yyyy HH:MM:SS');
+  hdr.nmea_utc = datevec(hdr.nmea_utc_datenum);
+else
+  hdr.nmea_utc_datenum = [];
+  hdr.nmea_utc = [];
 end

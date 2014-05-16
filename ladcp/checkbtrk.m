@@ -53,14 +53,15 @@ else
   bh_rdi = d.hbot(ii)*nan;
 end
 
-u_o = interp1(dr.z,dr.u,-d.z(ii)');
-u_c = -interp1(dr.tim',dr.uctd',d.time_jul(ii)');
-
 bu_own = d.bvel_own(ii,1);
 bv_own = d.bvel_own(ii,2);
 bw_own = d.bvel_own(ii,3);
 bh_own = d.hbot_own(ii);
-v_o = interp1(dr.z,dr.v,-d.z(ii)');
+
+
+%u_o = interp1(dr.z,dr.u,-d.z(ii)');
+%v_o = interp1(dr.z,dr.v,-d.z(ii)');
+u_c = -interp1(dr.tim',dr.uctd',d.time_jul(ii)');
 v_c = -interp1(dr.tim',dr.vctd',d.time_jul(ii)');
   
 rw = d.rw(d.izd,ii);
@@ -89,18 +90,18 @@ rvbe = d.rv(d.izd,ii);
 rwbe = d.rw(d.izd,ii);
 
 % the same, but only velocities that passed editing
+inan = find(~isfinite(d.weight));
 ru = d.ru; 
-ru(find(~isfinite(d.weight))) = NaN; 
+ru(inan) = NaN; 
 ru = ru(d.izd,ii);
 rv = d.rv; 
-rv(find(~isfinite(d.weight))) = NaN; 
+rv(inan) = NaN; 
 rv = rv(d.izd,ii);
 rw = d.rw; 
-rw(find(~isfinite(d.weight))) = NaN; 
+rw(inan) = NaN; 
 rw = rw(d.izd,ii);
 
 % correct velocities with solved U_ctd
-
 rua = ru-repmat(u_c',[length(d.izd) 1]); 
 ruabe = rube-repmat(u_c',[length(d.izd) 1]);
 rva = rv-repmat(v_c',[length(d.izd) 1]); 
@@ -114,8 +115,6 @@ rwanbe = abs(rwbe)./abs(repmat(w_c',[length(d.izd) 1]));
 
 bua_rdi = bu_rdi-u_c;
 bva_rdi = bv_rdi-v_c;
-
-
 %
 % try to use w inbetween pings for real bottom track
 %
@@ -127,7 +126,6 @@ if nstd(bwa1_rdi)>nstd(bwa2_rdi)
 else
   bwa_rdi = bwa1_rdi;
 end
-
 
 bua_own = bu_own-u_c;
 bva_own = bv_own-v_c;
@@ -238,7 +236,7 @@ clf
 subplot(221); hold on;
 plot(ruabe,izm,'.k');			% all velocities
 plot(rua,izm,'.g'); 			% edited velocities
-plot(ruabe(iz),izm(iz),'.r');		% used-for-BT velocities
+plot(rua(iz),izm(iz),'.r');		% used-for-BT velocities
 axis tight;
 ax = [-0.8,0.8,-160,50];
 vh = floor(ax(1)*20)/20+0.0125 : 0.025: ceil(ax(2)*20)/20;

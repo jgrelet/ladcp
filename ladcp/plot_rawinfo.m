@@ -213,10 +213,9 @@ end
 %
 if isfield(d,'tilt')
   subplot(814)
-  plot(d.tilt(1,:))
-  hold on
   ax = axis;
   patch(ax([1,2,2,1]),[20,20,30,30],[1,0.75,0.75],'edgecolor','none')
+  hold on;
   patch(ax([1,2,2,1]),[30,30,40,40],[1,0.5,0.5],'edgecolor','none')
   plot(d.tilt(1,:))
   ylabel('tilt [deg]')

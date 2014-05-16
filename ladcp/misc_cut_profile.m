@@ -160,7 +160,7 @@ end
 ii = data.z*0;
 ic = [i1(end):i2(1)];
 ii(ic) = 1;
-if (sum(ii)~=length(ii)) & params.cut>0 
+if (sum(ii)~=length(ii)) 
   disp('    Removing data at beginning and end of cast')
   disp('      adjusting start and end time ')
   values.firstlastindex = values.firstlastindex(1)-1+[ic(1),ic(end)];

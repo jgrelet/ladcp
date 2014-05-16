@@ -185,7 +185,7 @@ if p.edit_PPI
   
 %  for b=length(d.zu)+1:length(d.zu)+length(d.zd)
   bb=length(d.zu)+1:length(d.zu)+length(d.zd);
-  if isany(bb~=d.izd)
+  if any(bb~=d.izd)
     222
   end
   for b=d.izd

@@ -1,4 +1,4 @@
-function [] = process_cast(stn)
+function [] = process_cast(stn_str)
 % function [] = process_cast(stn)
 %
 % Process LADCP cast, including GPS, SADCP, and BT data.
@@ -26,18 +26,14 @@ if exist('logs')~=exist(pwd);
     return
 end
 
-if ispc
-  file_path = 'M:\PANDORA';
-elseif isunix
-  file_path = '/M/PANDORA';
-end
+
 %
 % clear already loaded and saved data for reloading and reprocessing
 %
-if stn<0
-  clear_prep(-stn);
-  return
-end
+% if stn<0
+%   clear_prep(-stn);
+%   return
+% end
 
 
 
@@ -49,11 +45,11 @@ default_params;
 cruise_params;
 cast_params;
 
-
+global pathFile;
 % 
 % prepare the various data files for easy loading
 %
-[values] = prepare_cast(stn, file_path);
+[values] = prepare_cast(stn_str,pathFile);
 
 
 %
@@ -214,7 +210,7 @@ figure(2)
 clf
 % experimental diagnostic of battery voltage
 %
-[p,messages] = calc_battery(p,values,messages);
+%[p,messages] = calc_battery(p,values,messages);
   
 %
 % complete task by repeating the most important warnings
@@ -252,7 +248,7 @@ if length(f.res)>1
   % save results to ASCII, MATLAB and NETCDF files
   %
   saveres(dr,p,ps,f,values)
-%  da = savearch(values,dr,data,p,ps,f);
+  da = savearch(values,dr,data,p,ps,f);
 
   %
   % save plots

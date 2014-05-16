@@ -311,8 +311,8 @@ if ~isempty(data.ctdtime_data)
     axis tight
     ax=axis;
     plot((2*nsamples+1)*[1 1],ax(3:4),'-k')
-    text(5,mean(w(i1(ii(25:end)))),'down cast (sample at 30% of cast)')
-    text(nsamples+5,mean(w(i1(ii(1:25)))),'up cast (sample at 70% of cast)')
+    text(nsamples,mean(w(i1(ii(2*nsamples+1:end)))),'down cast (sample at 30% of cast)','horizontalalignment','center')
+    text(3*nsamples,mean(w(i1(ii(1:2*nsamples)))),'up cast (sample at 70% of cast)','horizontalalignment','center')
     title(['best lag W: ',int2str(lag),' scans ~ ',...
              int2str(lagdt*86400),' sec.  corr.:',num2str(co)]);
     ylabel('W used for lag correlation')

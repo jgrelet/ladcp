@@ -83,9 +83,9 @@ if prod(size(s))==1
     s.properties = rmfield(s.properties,'ApplicationData');
     set(gcf,s.properties)
     for n=1:length(s.children)
-%     warning off		% stop not very useful warnings
+      warning off		% stop not very useful warnings
       struct2handle(s.children(n),gcf);
-%     warning on
+      warning on
     end
     ch = get(gcf,'children');	% handle disappearing streamer
     for n=1:length(ch)

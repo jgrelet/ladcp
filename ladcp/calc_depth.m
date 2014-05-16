@@ -374,7 +374,7 @@ else
     if exist('ddoz','var')
       sfac = 0.01;
       [ld,lz] = size(A1);
-      d1 = [d1;ddoz*0.1];
+      d1 = [d1;ddoz*sfac];
       A2 = sparse(1:length(ddoi),ddoi,sfac);
       A2(1,lz) = 0;
       A1 = [A1;A2];
@@ -385,7 +385,7 @@ else
     if exist('dupz','var')
       sfac = 0.01;
       [ld,lz] = size(A1);
-      d1 = [d1;dupz*0.1];
+      d1 = [d1;dupz*sfac];
       A2 = sparse(1:length(dupi),dupi,sfac);
       A2(1,lz) = 0;
       A1 = [A1;A2];

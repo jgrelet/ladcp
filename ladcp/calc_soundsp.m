@@ -58,7 +58,9 @@ end
 disp('    Correcting all ADCP velocities for sound speed ')
 sc = meshgrid(data.ss./data.sv(1,:),data.izd);
 if values.up==1
-  sc = [sc;meshgrid(data.ss./data.sv(2,:),data.izu)];
+  % F.MARIN - IRD - 2012/03/16
+  sc = [meshgrid(data.ss./data.sv(2,:),data.izu);sc];
+  %sc = [sc;meshgrid(data.ss./data.sv(2,:),data.izu)];
 end
 data.ru = data.ru.*sc;
 data.rv = data.rv.*sc;
