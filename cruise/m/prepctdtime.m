@@ -1,4 +1,4 @@
-function [values] = prepctdtime(stn,values)
+function [values] = prepctdtime(stn_str,values,pathFile)
 % function [values] = prepctdtime(stn,values)
 %
 % prepare CTD data against time for LADCP
@@ -20,10 +20,6 @@ function [values] = prepctdtime(stn,values)
 % if you do no have CTD time data to be used in the
 % LADCP processing, uncomment the next two lines, otherwise edit the following
 
-disp('YOU FIRST NEED TO EDIT THE FILE cruise_id/m/prepctdtime.m !')
-pause
-return
-
 
 %
 % first copy CTD time data to raw CTD data directory
@@ -36,8 +32,16 @@ return
 % and want to copy it to the ADCP processing
 %
 
-eval(['!copy z:\IFM_Leg4\CTD\for_use_uncalibrated\ATA4_',int2str0(stn,3),...
-  	'_1sec.cnv data\raw_ctdtime'])
+if ~exist(['data/raw_ctdtime/'])
+   mkdir('data/raw_ctdtime');
+end
+
+fname = strcat(pathFile,'/data-processing/CTD/data/ladcp/fr24',stn_str,'_ladcp.cnv');
+if ~exist(fname,'file')
+   return
+end
+copyfile(fname,['data/raw_ctdtime/',stn_str,'.cnv']);
+
 
 % station three was an interrupted CTD file. Thus there is no
 % full CTD-time and NAV (from CTD) data available
@@ -70,13 +74,14 @@ eval(['!copy z:\IFM_Leg4\CTD\for_use_uncalibrated\ATA4_',int2str0(stn,3),...
 % THIS IS APPROPRIATE FOR SEABIRD CNV FILES that contain the
 % variable 'time in julian days'
 %
-[hdr,data] = read_sbe_cnv(['data/raw_ctdtime/ATA4_',int2str0(stn,3),'_1sec.cnv']);
-timctd = data.timej + julian([2008,1,0,0,0,0]);
-data = [data.p,data.t_pri,data.s_pri];
+[hdr,ctd] = read_sbe_cnv(['data/raw_ctdtime/',stn_str,'.cnv']);
+timctd = julian(datevec(ctd.datenum));
+data = [ctd.p,ctd.t_pri,ctd.s_pri];
 
-if ~isfield(values,'ctd_time')
-  values.ctd_time = nmedian(timctd);
-end
+% remove NaN values
+ind = find( isnan(timctd) | any(isnan(data),2) );
+timctd(ind) = [];
+data(ind,:) = [];
 
 %
 % the pressure data on one of our cruises had some spikes which
@@ -85,10 +90,9 @@ end
 % following lines. If it is bad you will need do create your
 % own despiking.
 %
-good = find(data(:,3)>1);
-data = data(good,:);
-timctd = timctd(good);
-
+%good = find(data(:,3)>1);
+%data = data(good,:);
+%timctd = timctd(good);
 
 %
 % In our example the CTD cast recording began a bit before the
@@ -101,30 +105,21 @@ timctd = timctd(good);
 % have to 'invent' your own methods to make sure that only the
 % cast is extracted.
 %
-% Here we cut start and end of profiles to near sea surface.
+% Here we cut start and end of profiles to when CTD is under water
 % This is done by taking the maximum pressure
 % finding the two values closest to half of this pressure
 % on the up and the down casts and go towards the
-% surface on up and down casts until one reaches either 2dbar or
-% the last value
+% surface on up and down casts until salinity is lower than 10.0
 %
-% uncomment the following only, if you experience problems with the
-% determination of beginning and end of cast
-%
-%[pmax,indmax] = nmax(data(:,1));
-%[dummy,mid1] = min( abs(pmax/2-data(1:indmax,1)) );
-%[dummy,mid2] = min( abs(pmax/2-data(indmax+1:end,1)) );
-%mid2 = mid2+indmax-1;
-%inds = max( find( data(1:mid1,1)< 2 ) );
-%if isempty(inds)
-%  inds = 1;
-%end
-%inde = min( find( data(mid2:end,1)< 2 ) ) + mid2-1;
-%if isempty(inde)
-%  inde = size(data,1);
-%end
-%data = data(inds:inde,:);
-%timctd = timctd(inds:inde);
+if ~isfield(values,'ctd_time')
+  values.ctd_time = nmedian(timctd);
+end
+if ~isfield(values,'start_time')
+  values.start_time = timctd(1);
+end
+if ~isfield(values,'end_time')
+  values.end_time   = timctd(end);
+end
 
 
 %
@@ -148,4 +143,4 @@ timctd = timctd(good);
 %
 % store data in the standard location
 %
-save6(['data/ctdtime/ctdtime',int2str0(stn,3)],'timctd','data')
+save6(['data/ctdtime/ctdtime',stn_str],'timctd','data')

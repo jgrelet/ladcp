@@ -1,4 +1,4 @@
-function [values] = prepctdprof(stn,values)
+function [values] = prepctdprof(stn_str,values,pathFile)
 % function [values] = prepctdprof(stn,values)
 %
 % prepare CTD profile for LADCP
@@ -32,14 +32,17 @@ function [values] = prepctdprof(stn,values)
 % this data could e.g. be coming from a mounted disk like in
 % the example below
 
-fname = ['m:/PANDORA/data-processing/CTD/PN',int2str0(stn,5),'.txt'];
+% eval(['!copy z:\IFM_Leg4\CTD\for_use_uncalibrated\dATA4_',int2str0(stn,3),...
+%   	'_1dbar.cnv data\raw_ctdprof'])
+
+fname = strcat(pathFile,'/data-processing/CTD/data/ladcp/fr24',stn_str,'_ladcp.cnv');
 if ~exist(fname,'file')
-   fname = ['m:/PANDORA/data-processing/CTD/pn',int2str0(stn,5),'.txt'];
+   fname = strcat(pathFile,'/data-processing/CTD/data/ladcp/fr24',stn_str,'_ladcp.cnv');
 end
 if ~exist(fname,'file')
    return
 end
-copyfile(fname,['data/raw_ctdprof/',int2str0(stn,5),'.ctd']);
+copyfile(fname,['data/raw_ctdprof/',stn_str,'.ctd']);
 
 % load the data and convert to standard format
 % 
@@ -48,42 +51,22 @@ copyfile(fname,['data/raw_ctdprof/',int2str0(stn,5),'.ctd']);
 %
 % you might have to convert depth to pressure in dbar
 % and/or conductivity to salinity
-fid = fopen(['data/raw_ctdprof/',int2str0(stn,5),'.ctd'],'r');
-% date
-for nl=1:3
-    ligne = fgets(fid);
-end
-values.ctd_time = julian(datevec(sscanf(ligne,' DATE:  %20c')));
-% position
-ligne = fgets(fid);
-pos_lat = sscanf(ligne,' LATITUDE: %d %f %c  LONGITUDE: %*d %*f %*c',[3 1]);
-values.ctd_lat = pos_lat(1) + pos_lat(2)/60;
-if strcmp(pos_lat(3),'N')
-   values.ctd_lat = -pos_lat(1) + pos_lat(2)/60;
-else 
-   values.ctd_lat = -pos_lat(1) - pos_lat(2)/60;
-end
-pos_lon = sscanf(ligne,' LATITUDE: %*d %*f %*c  LONGITUDE: %d %f %c',[3 1]);
-if strcmp(pos_lat(3),'E')
-   values.ctd_lon = -pos_lon(1) + pos_lon(2)/60;
-else
-   values.ctd_lon = -pos_lon(1) - pos_lon(2)/60;
-end
-% heading
-for nl=1:3
-    fgets(fid);
-end
-% data
-ctdprof = fscanf(fid,'%f %f %f %*f %*f %*d',[3 Inf])';
-% close file
-fclose(fid);
+[hdr,data] = read_sbe_cnv(['data/raw_ctdprof/',stn_str,'.ctd']);
 
-% remove NaN values
-ind = find(any(ctdprof==-99,2));
-ctdprof(ind,:) = [];
+ctdprof = [data.p,data.t_pri,data.s_pri];
+values.ctd_time = julian(hdr.nmea_utc);
+values.ctd_lat = hdr.nmea_lat;
+values.ctd_lon = hdr.nmea_lon;
+
+% the pressure data in the example had some spikes which
+% could be removed by the following
+% If your data quality is already good, you won't need the
+% following lines
+%good = find(ctdprof(:,3)>1);
+%ctdprof = ctdprof(good,:);
 
 % store data at the standard location
-save6(['data/ctdprof/ctdprof',int2str0(stn,5)],'ctdprof')
+save6(['data/ctdprof/ctdprof',stn_str],'ctdprof')
 
 % save filename
-file = ['data/ctdprof/ctdprof',int2str0(stn,5)];
+file = ['data/ctdprof/ctdprof',stn_str];
