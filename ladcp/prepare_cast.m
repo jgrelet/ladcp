@@ -1,10 +1,10 @@
-function [values] = prepare_cast(stn, pathFile)
+function [values] = prepare_cast(stn_str, pathFile)
 % function [values] = prepare_cast(stn)
 %
 % prepare input data (CTD, LADCP, SADCP, NAV) so that it is digestible
 % by the LADCP processing routines
 %
-% input  :	stn		station number
+% input  :	stn_str		station number
 %		    values	LADCP structure containing various values
 %
 % output :  values  LADCP structure containing various values
@@ -71,12 +71,12 @@ values.initial = [];
 % data. This information will subsequently be used to cut the
 % navigational and SADCP data (just to reduce the loading times and the
 % necessary storage space)
-if exist(['data/ctdprof/ctdprof',int2str0(stn,5),'.mat'],'file')
+if exist(['data/ctdprof/ctdprof',stn_str,'.mat'],'file')
   disp(['    Found previously prepared CTD-PROFILE data.'])
 else
-  [values] = prepctdprof(stn,values,pathFile);
+  [values] = prepctdprof(stn_str,values,pathFile);
 end
-if exist(['data/ctdprof/ctdprof',int2str0(stn,5),'.mat'],'file')
+if exist(['data/ctdprof/ctdprof',stn_str,'.mat'],'file')
   values.ctdprofdata=1;
 else
   values.ctdprofdata=0;
@@ -89,12 +89,12 @@ end
 % 1 sec steps are necessary
 % the data will be stored in a mat-file named 'data/ctd/ctdtimeSTN.mat'
 % where STN is the 3-digit station number
-if exist(['data/ctdtime/ctdtime',int2str0(stn,5),'.mat'],'file')
+if exist(['data/ctdtime/ctdtime',stn_str,'.mat'],'file')
   disp(['    Found previously prepared CTD-TIME data.'])
 else
-  [values] = prepctdtime(stn,values,pathFile);
+  [values] = prepctdtime(stn_str,values,pathFile);
 end
-if exist(['data/ctdtime/ctdtime',int2str0(stn,5),'.mat'],'file')
+if exist(['data/ctdtime/ctdtime',stn_str,'.mat'],'file')
    values.ctdtimedata=1;
 else
    values.ctdtimedata=0;
@@ -125,12 +125,12 @@ end
 % 1 sec steps are necessary
 % the data will be stored in a mat-file named 'data/nav/navSTN.mat'
 % where STN is the 3-digit station number
-if exist(['data/nav/nav',int2str0(stn,5),'.mat'],'file')
+if exist(['data/nav/nav',stn_str,'.mat'],'file')
   disp(['    Found previously prepared NAV data.'])
 else
-  prepnav(stn,values,pathFile);
+  prepnav(stn_str,values,pathFile);
 end
-if exist(['data/nav/nav',int2str0(stn,5),'.mat'],'file')
+if exist(['data/nav/nav',stn_str,'.mat'],'file')
    values.navdata=1;
 else
    values.navdata=0;
@@ -142,7 +142,7 @@ end
 % data files are supposed to be in
 % 'data/raw_ladcp/STN'
 % where STN is the 3-digit station number
-prepladcp(stn,pathFile);
+prepladcp(stn_str,pathFile);
 
 % prepare SADCP data 
 % this is to bring the SADCP data into the proper variables
@@ -155,12 +155,12 @@ prepladcp(stn,pathFile);
 % u_sadcp		matrix containing zonal velocities in m/s
 % v_sadcp		matrix containing meridional velocities in m/s
 % z_sadcp		vector containing the depths of the velocity data in m
-if exist(['data/sadcp/sadcp',int2str0(stn,5),'.mat'],'file')
+if exist(['data/sadcp/sadcp',stn_str,'.mat'],'file')
   disp(['    Found previously prepared SADCP data.'])
 else
-  prepsadcp(stn,values,pathFile);
+  prepsadcp(stn_str,values,pathFile);
 end
-if exist(['data/sadcp/sadcp',int2str0(stn,5),'.mat'],'file')
+if exist(['data/sadcp/sadcp',stn_str,'.mat'],'file')
   values.sadcpdata=1;
 else  
   values.sadcpdata=0;
