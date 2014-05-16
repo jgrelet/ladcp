@@ -14,9 +14,15 @@ classdef default_p_object < dynamicprops
   % $Id$
   
   properties (Access = public)
+    
+    % software version display at startup
     software = 'IFM-GEOMAR LADCP software: Version 10.8: 07 February 2009 '
     whoami = 'unknown'
+    
+    % for cruise
     name = ' '
+    cruise_id = []
+    correct_year
     
     % preset start and end time vectors
     time_start = []
