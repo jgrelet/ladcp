@@ -1,0 +1,83 @@
+function []=saveres(dr,p,ps,f,values)
+% function []=saveres(dr,p,ps,f,values)
+%
+% store LADCP result in RODB format
+%
+% version 0.6	last change 18.06.2008
+
+% changed values stored as lat/lon      G.K.    May 2007	0.2_->0.3
+% modified version id			GK	Jun 2007	0.3_->0.4
+% change save command			GK	Aug 2007	0.4-->0.5
+% added some header info		GK	Jun 2008	0.5-->0.6
+
+%
+% store some results as a MAT file
+%
+save6([f.res,'.mat'],'dr','p','ps','f')
+
+
+%
+% open file
+%
+fid = fopen([f.res,'.lad'],'wt');
+
+
+%
+% write file header
+%
+fprintf(fid,['Filename    = %s\n'],f.res);
+fprintf(fid,['Date        = %s\n'],datestr(p.time_start,26));
+fprintf(fid,['Start_Time  = %s\n'],datestr(p.time_start,13));
+%[lats,lons] = pos2str([p.poss(1)+p.poss(2)/60,p.poss(3)+p.poss(4)/60]);
+%[lats,lons] = pos2str([values.lat,values.lon]);
+fprintf(fid,['Latitude    = %s\n'],num2str(values.lat));
+fprintf(fid,['Longitude   = %s\n'],num2str(values.lon));
+fprintf(fid,['Deviation   = %f\n'],values.magdev);
+fprintf(fid,['Version     = %s\n'],p.software);
+fprintf(fid,['Processed   = %s\n'],datestr(clock));
+fprintf(fid,['Units       = m:m/s:m/s:m/s\n'],[]);
+fprintf(fid,['Columns     = z:u:v:ev\n'],[]);
+if ~isfield(dr,'uerr')
+ dr.uerr=dr.u*NaN;
+end
+
+
+%
+% write data
+%
+fprintf(fid,['%6.1f %6.3f %6.3f %6.3f \n'],[dr.z,dr.u,dr.v,dr.uerr]');
+
+
+%
+% close file
+%
+fclose(fid);
+
+
+%
+% in case we have bottom track data, store that in another file
+%
+if isfield(dr,'ubot')
+
+  % save bottom track data
+  % open file
+  fid = fopen([f.res,'.bot'],'wt');
+
+  fprintf(fid,['Filename    = %s\n'],f.res);
+  fprintf(fid,['Date        = %s\n'],datestr(p.time_start,26));
+  fprintf(fid,['Start_Time  = %s\n'],datestr(p.time_start,13));
+  [lats,lons] = pos2str([p.poss(1)+p.poss(2)/60,p.poss(3)+p.poss(4)/60]);
+  fprintf(fid,['Start_Lat   = %s\n'],lats);
+  fprintf(fid,['Start_Lon   = %s\n'],lons);
+  fprintf(fid,['Deviation   = %f\n'],values.magdev);
+  fprintf(fid,['Bottom depth= %d\n'],fix(p.zbottom));
+  fprintf(fid,['Version     = %s\n'],p.software);
+  fprintf(fid,['Processed   = %s\n'],datestr(clock));
+  fprintf(fid,['Units       = m:m/s:m/s:m/s\n'],[]);
+  fprintf(fid,['Columns     = z:u:v:err\n'],[]);
+  fprintf(fid,['%6.1f %6.3f %6.3f %6.3f\n'],...
+            [dr.zbot,dr.ubot,dr.vbot,dr.uerrbot]');
+
+  fclose(fid);
+
+end
