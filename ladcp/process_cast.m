@@ -42,11 +42,12 @@ end
 % and make sure that we have no leftovers from previous processings
 %
 % default_params;
-% cruise_params;
-% cast_params;
 p = default_p_object;
 f = default_f_object(stn_str);
 ps = default_ps_object;
+% overwrite default parameters for cruise and cast
+cruise_params;
+cast_params;
 
 messages.warn = 'LADCP WARNINGS';
 messages.warnp = 'LADCP processing warnings: ';
@@ -55,7 +56,7 @@ global pathFile;
 % 
 % prepare the various data files for easy loading
 %
-[values] = prepare_cast(stn_str,pathFile);
+[values] = prepare_cast(stn_str, pathFile);
 
 
 %
