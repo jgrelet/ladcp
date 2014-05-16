@@ -15,7 +15,7 @@
 % and in all file names
 %
 if ispc
-  thePath = 'M:\';
+  thePath = 'C:\';
 elseif isunix
   thePath = '/M/';
 end
