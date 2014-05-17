@@ -484,7 +484,7 @@ classdef default_p_object < dynamicprops
   methods
     % constructor
     function self = default_p_object()
-      self.whoami = whoami; %#ok<CPROP>
+      [~,self.whoami] = system('whoami'); 
       disp(self.software);          % show version
     end
     
