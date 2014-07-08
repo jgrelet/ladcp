@@ -14,16 +14,22 @@ function [d,p]=misc_fixcompass(d,p)
 %
 % once you done this rotup2down gets disabled since I assume you know what the offset was
 %
-% M. Visbeck LDEO 2004
-%
+% version 0.2  last change 29.08.2011
 
-disp('  FIXCOMPASS:  adjust compass')
+% M. Visbeck LDEO 2004
+
+% small bugs as this has for a long time not been used   GK, 29.08.2011  0.1-->0.2
+
+disp(' ')
+disp('FIXCOMPASS:  adjust compass')
 
 % use tilt sensors to figure out allingment between instruments
-diary off
-hoff2 = fminsearch('checktilt',0,[],[d.rol(2,:);d.pit(2,:);d.rol(1,:);d.pit(1,:)]);
-diary on
-disp(['  Mean instrument alignment based on tilt is ',num2str(hoff2),' deg'])
+if length(d.izu)>0
+  diary off
+  hoff2 = fminsearch('checktilt',0,[],[d.rol(2,:);d.pit(2,:);d.rol(1,:);d.pit(1,:)]);
+  diary on
+  disp(['  Mean instrument alignment based on tilt is ',num2str(hoff2),' deg'])
+end
 
 [lb,lt] = size(d.ru);
 if p.fix_compass==2

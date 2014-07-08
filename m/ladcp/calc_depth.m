@@ -9,14 +9,17 @@ function [data,params,values,messages]=calc_depth(data,params,values,messages)
 % is used. If that isn't available either, vertical velocities
 % are integrated by an inverse method.
 %
-% version 0.1	last change 27.7.2005
+% version 0.4	last change 10.07.2012
 
 % Martin Visbeck December 2002, LDEO
 % G.Krahmann, IFM-GEOMAR, Jul 2005
-% major changes in Jul 2008   0.7 -> 0.8 
-%
 
-%%
+% major changes in Jul 2008                                       0.1-->0.2
+% allow usage of preset params.zbottom            GK, 31.05.2011  0.2-->0.3
+% comments, simplifications in dinset     
+% fixed bug in bottom calculation without CTD     GK, 10.07.2012  0.3-->0.4
+
+%
 % general function info
 %
 disp(' ')
@@ -24,7 +27,7 @@ disp('CALC_DEPTH:  determine the depth of the LADCP during cast')
 values = setdefv(values,'ladcpdepth',-1);
 
 
-%%
+%
 % calculate z the simple way by integrating w and correcting for
 % preset start, end, and maximum depth
 %
@@ -40,10 +43,12 @@ else
   dw = nmedian(data.rw,1);
 end
 
+
 %
 %  set non finite w to zero
 %
 dw = replace( dw, ~isfinite(dw), 0 );
+
 
 %
 % get time difference for w-values
@@ -51,16 +56,19 @@ dw = replace( dw, ~isfinite(dw), 0 );
 dt = diff(data.time_jul)*24*3600;
 dt = mean([dt([1,1:end]);dt([1:end,end])]);
 
+
 %
 %  integrate result
 %
 zz = cumsum(dw.*dt);
+
 
 %
 %  make sure that start and end depth are as wanted
 %
 zz = zz-linspace(-nmax([0 params.zpar(1)]),...
 	-nmax([0 params.zpar(3)])+zz(end),length(zz));
+
 
 %
 %  set maxdepth to be as requested
@@ -69,28 +77,32 @@ if isfinite(params.zpar(2))
   zz = zz/max(zz)*params.zpar(2);
 end
 
+
 %
 % store these depths
 %
 data.ladcp_z_simple = -zz; 
 
+
 %
 % us as first guess if no CTD time series are present
 %
-
 if isempty(data.ctdtime_data) & values.ladcpdepth<0
- data.z=-zz;
+ data.z = -zz;
 end
+
 
 %
 % find index and depth of deepest point of profile
 %
 [values.maxdepth,ibot] = max(-data.z);
 
-%%
+
+%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % now do the serious depth calculation
 %
+
 
 %
 % for very shallow stations turn off surface detection
@@ -103,20 +115,22 @@ end
 %end
 
 
+%
+% display surface detection
+%
 figure(2)
 clf
+
 
 %
 % first detect the surface of the down cast
 %
-% 
-
-ind = [1:ibot];
-iok = ind(find(data.z(ind)>-200));
-if length(iok)>2
-  iok2 = [1:iok(end)];
+ind_down = [1:ibot];
+ind_down = ind_down(find(data.z(ind_down)>-200));
+if length(ind_down)>2
+  ind_down = [1:ind_down(end)];
   subplot(221)
-  plot(iok2,data.z(iok2),'.r',iok2,iok2*0,'-k'),
+  plot(ind_down,data.z(ind_down),'.r',ind_down,ind_down*0,'-k'),
   hold on
   title('Best Depth (.red) Surface Signal (.blue)')
   xlabel('time in ensembles')
@@ -128,12 +142,12 @@ if length(iok)>2
 end
 
 % then up cast
-ind = [ibot:length(data.z)];
-iok = ind(find(data.z(ind)>-200));
-if length(iok)>2
-  iok2 = iok(1):length(data.z);
+ind_up = [ibot:length(data.z)];
+ind_up = ind_up(find(data.z(ind_up)>-200));
+if length(ind_up)>2
+  ind_up = ind_up(1):length(data.z);
   subplot(222)
-  plot(iok2,data.z(iok2),'.r',iok2,iok2*0,'-k'),
+  plot(ind_up,data.z(ind_up),'.r',ind_up,ind_up*0,'-k'),
   hold on
   title('Best Depth (.red) Surface Signal (.blue)')
   xlabel('time in ensembles')
@@ -226,10 +240,10 @@ if 1
       params.zbottom = zbottom;
       % save bottom distances for inversion
       if exist('values.depth_iter','var')
-          dbotdz = (data.hbot(iok)+polyval(c,iok-ibot)+data.z(ibot))';
+          dbotdz = (data.hbot(iok)-(polyval(c,iok-ibot)+data.z(ibot)))';
           values.depth_iter = values.depth_iter+1;
       else
-          dbotdz = (data.hbot(iok)+polyval(c1,iok-ibot)+data.z(ibot))';
+          dbotdz = (data.hbot(iok)-(polyval(c1,iok-ibot)+data.z(ibot)))';
           values.depth_iter=1;
       end
       dboti = iok';
@@ -242,7 +256,7 @@ if 1
       
       plot(iok2,iok2*0-params.zbottom,'--k') 
       plot(iok2,-polyval(c,iok2-ibot),'-b')
-      title('Bottom calculated (--k) LADCP depth (.r) Bottom Signal (.b) Integrated W depth (-g)')
+      title('Bottom calculated (--k) Inverted LADCP depth (.r) Bottom Signal (.b) Simple Integrated W depth (-g)')
       xlabel('time in ensembles')
       ylabel('depth in meter')
 
@@ -259,21 +273,36 @@ if 1
       data.bvel(ibad,:) = NaN;
     else
       disp('    Not enough data to determine water depth.')
-      zbottom = nan;
-      params.zbottom = nan;
-      params.zbottomerror = nan;
+      if params.zbottom~=0
+        disp('    Found preset water depth')
+        zbottom = params.zbottom;
+      else
+        zbottom = nan;
+        params.zbottom = nan;
+        params.zbottomerror = nan;
+      end
     end
   else
     disp('    Not enough data to determine water depth.')
-    zbottom = NaN;
-    params.zbottom = nan;
-    params.zbottomerror = nan;
+    if params.zbottom~=0
+      disp('    Found preset water depth')
+      zbottom = params.zbottom;
+    else
+      zbottom = NaN;
+      params.zbottom = nan;
+      params.zbottomerror = nan;
+    end
   end
 else
   disp('    Not determining water depth. (no data or turned off)')
-  zbottom = NaN;
-  params.zbottom = NaN;
-  params.zbottomerror = NaN;
+  if params.zbottom~=0
+    disp('    Found preset water depth')
+    zbottom = params.zbottom;
+  else
+    zbottom = NaN;
+    params.zbottom = NaN;
+    params.zbottomerror = NaN;
+  end
 end
 
 
@@ -369,12 +398,11 @@ else
     end
     A1(length(d1),end) = 1;
 
-    % add surface/bottom reflections if present
- 
+    % add surface reflections if present
     if exist('ddoz','var')
       sfac = 0.01;
       [ld,lz] = size(A1);
-      d1 = [d1;ddoz*0.1];
+      d1 = [d1;ddoz*sfac];
       A2 = sparse(1:length(ddoi),ddoi,sfac);
       A2(1,lz) = 0;
       A1 = [A1;A2];
@@ -385,14 +413,15 @@ else
     if exist('dupz','var')
       sfac = 0.01;
       [ld,lz] = size(A1);
-      d1 = [d1;dupz*0.1];
+      d1 = [d1;dupz*sfac];
       A2 = sparse(1:length(dupi),dupi,sfac);
       A2(1,lz) = 0;
       A1 = [A1;A2];
       disp(['    Used ',int2str(length(dupi)),...
-	' surface detections up cast'])
+          ' surface detections up cast'])
     end
 
+    % add bottom reflections if present
     if exist('dbotdz','var') 
       bfac = 0.1;
       [ld,lz] = size(A1);
@@ -402,13 +431,11 @@ else
       A2(1,lz) = 0;
       A1 = [A1;A2];
       disp(['    Used ',int2str(length(dboti)),...
-	' bottom distances'])
+          ' bottom distances'])
     end
     
-    
-    % add surface/bottom reflections if present
-    
     if params.weight_ladcp_pressure>0
+      11
       [ld,lz] = size(A1);
       ix = find(isfinite(data.z_ladcp_p));
       d1 = [d1;-data.z_ladcp_p(ix)'*params.weight_ladcp_pressure];
@@ -416,7 +443,7 @@ else
       A2(1,lz) = 0;
       A1 = [A1;A2];
       disp(['    Used ',int2str(length(ix)),...
-	' ADCP pressure data'])
+          ' ADCP pressure data'])
     end
 
     % require z to be smooth (needed otherwise ill constrained)
@@ -443,6 +470,7 @@ else
  
 end
 plot(iok2,data.z(iok2),'.r')
+
 
 %-----------------------------------------------------------------
 function [d,A,izbot]=dinset(dw,dt)
@@ -472,15 +500,18 @@ ido = [1:izbot];
 iup = [izbot+1:length(dt)];
 
 % 
-dtm = repmat(dt,[nb 1]);
-izm = repmat([1:nt],[nb 1]);
+dtm = repmat(dt,[nb 1]);         % this the time vector but repmat nb times
+izm = repmat([1:nt],[nb 1]);     % this is an time index vector but repmat nb times
 
-d = reshape(dw.*dtm,nb*nt,1);
-izv = reshape(izm,nb*nt,1);
+d = reshape(dw.*dtm,nb*nt,1);    % this is a reshaped vertical distance between pings
+izv = reshape(izm,nb*nt,1);      % this is a reshaped time index vector
 
-ibad = find((izv-1)<1 | (izv+1)>nt);
-d(ibad) = [];
-izv(ibad) = [];
+%
+% the following just removes the first and last data set
+%
+igood = find(izv>1 & izv<nt);
+d = d(igood);
+izv = izv(igood);
 
 iweak = find(~isfinite(d) | (izv-1)<1 | (izv+1)>nt);
 

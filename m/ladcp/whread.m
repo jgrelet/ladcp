@@ -1,8 +1,14 @@
 function varargout = rdread(fid)
 %RDREAD Read RDI BB data.
 %  RDREAD(FID)
+%
+% version 0.3  last change 10.06.2011
 
 %  Christian Mertens, IfM Kiel
+
+% read instrument serial number                   GK, 13.05.2011  xx-->0.2
+% read NB/BB mode                                 GK, 10.06.2011  0.2-->0.3
+
 
 % rewind to beginning of file and read header to get the number of bytes
 % in each ensemble, the number of data types, and the address offsets
@@ -134,9 +140,17 @@ fseek(fid,16,'cof');
 fl(5:6) = 0.01*fread(fid,2,'ushort');
 
 fseek(fid,6,'cof');
+
 % Serial Number of CPU board
 fl(7:14) = fread(fid,8,'uint8');
 
+% Bandwith 1=NB  0=BB
+fl(15) = fread(fid,1,'uint16');
+
+fseek(fid,2,'cof');
+
+% Serial Number of Instrument
+fl(16:19) = fread(fid,4,'uchar');
 
 
 %-------------------------------------------------------------------------------

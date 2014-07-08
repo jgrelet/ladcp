@@ -3,42 +3,43 @@ function  [dev,d,h,i,f,x,y,z]=magdev(flat,flon,elevkm,year);
 % 
 % compute magnetic deviation
 %
-% input:	flat        	latitude (degree)
-%		flon        	longitude (degree)
-%       	elevkm      [0]	elevation above mean geoid (km)
-%       	year        	decimal year
+% input:  flat        - latitude (degree)
+%         flon        - longitude (degree)
+%         elevkm [0]  - elevation above mean geoid (km)
+%         year        - decimal year
 %
-% output:	dev         	mag. deviation (degree)
+% output:	dev         - mag. deviation (degree)
 % 
 % 
 % based of FORTRAN ROUTINE GEOMAG.FOR
 % more info under  http://www.ngdc.noaa.gov/IAGA/vmod/igrf.html
 % 
 %
-% version 0.2	last change 02.06.2007
+% version 0.4	last change 31.05.2011
 
 
 % M. Visbeck, LDEO FEB 2000
 % rewritten for other epochs, G. Krahmann, IFM-GEOMAR Mar 2007
 %
-% modified for >=R14			GK, Jun 2007 	0.1->0.2
+% modified for >=R14                    GK, Jun 2007    0.1-->0.2
+% switch to IGRF11                      GK, 08.11.2010  0.2-->0.3
+% replaced sind/cosd with sin_d/cos_d   GK, 31.05.2011  0.3-->0.4
 
 
 %
 % read the coefficients
 %
-fname = 'igrf10coeffs.xls';
+fname = 'igrf11coeffs.xls';
 warning off			% avoid non-sensical warning in >=R14
 gh = xlsread(fname);
 warning on
-
 
 %
 % determine the maximum order of polynomials
 %
 % this might need modification in future versions of the file
 %
-if year<2000 | year>2005
+if year<2000 
   nmax = 10;
 else
   nmax = 13;
@@ -127,11 +128,11 @@ b2=40408588.;
 
 
 
-slat = sind(flat);
+slat = sin_d(flat);
 aa = min(89.999,max(-89.999,flat));
-clat = cosd(aa);
-sl(1) = sind(flon);
-cl(1) = cosd(flon);
+clat = cos_d(aa);
+sl(1) = sin_d(flon);
+cl(1) = cos_d(flon);
 
 x=0.0;
 y=0.0;

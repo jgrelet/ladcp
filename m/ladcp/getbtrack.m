@@ -3,7 +3,11 @@ function [d,p,messages]=getbtrack(d,p,values,messages);
 %
 % create own bottom track in addition to the one used before
 %
+% version 0.2  last change 28.05.2011
+
 % Changed default bottom track range accoding to bin length    MV Jul 2008  0.7 - 0.8
+% allow last but one bin for bottom (before it 
+% was erroneously last but two bins)              GK, 28.05.2011  0.1-->0.2
 
 %
 % general function info
@@ -133,8 +137,8 @@ if p.btrk_mode>=1
     % locate acceptable bottom tracks (don't accept first/last bin)
     ii = find(dts>p.btrk_ts & ...
               zmead>min(p.btrk_range) & zmead<max(p.btrk_range) & ...
-               imeadbv<(nbin-1) & imeadbv>fitb1);
- 
+               imeadbv<nbin & imeadbv>fitb1);
+             
     if length(ii)>0
 
       % save bottom distance data
@@ -158,10 +162,10 @@ if p.btrk_mode>=1
 
       for j=1:length(ii)
         ji = ii(j);
-        bv(ji,1) = nmedian(d.ru(ib1+imeadbv(ji)+[-1,0,0,1],ji));
-        bv(ji,2) = nmedian(d.rv(ib1+imeadbv(ji)+[-1,0,0,1],ji));
-        bv(ji,3) = nmedian(d.rw(ib1+imeadbv(ji)+[-1,0,0,1],ji));
-        bv(ji,4) = nmedian(d.re(ib1+imeadbv(ji)+[-1,0,0,1],ji));
+        bv(ji,1) = nmedian(d.raw_u(ib1+imeadbv(ji)+[-1,0,0,1],ji));
+        bv(ji,2) = nmedian(d.raw_v(ib1+imeadbv(ji)+[-1,0,0,1],ji));
+        bv(ji,3) = nmedian(d.raw_w(ib1+imeadbv(ji)+[-1,0,0,1],ji));
+        bv(ji,4) = nmedian(d.raw_e(ib1+imeadbv(ji)+[-1,0,0,1],ji));
       end
 
       % check for W-bot 
@@ -169,7 +173,7 @@ if p.btrk_mode>=1
       ii = find(abs(wref'-bv(:,3))>p.btrk_wlim);
       disp(['    Removed ',int2str(length(ii)),...
            	' bottom track profiles W_btrk - W_ref difference > ',...
-		num2str(p.btrk_wlim)])
+            num2str(p.btrk_wlim)])
       bv(ii,:) = nan;
 
       % check for outlier
@@ -202,6 +206,7 @@ else
   d.bvel = d.bvel+nan;
   d.hbot = d.hbot+nan;
 end
+
 
 % summary output
 disp(['    out: p.btrk_mode ',int2str(p.btrk_mode),' and p.btrk_used ',int2str(p.btrk_used)])

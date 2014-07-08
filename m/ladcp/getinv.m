@@ -3,26 +3,28 @@ function [messages,p,dr,ps,de,der]=getinv(messages,values,di,p,ps,dr,iplot)
 %
 % solve linear inverse problem for LADCP profiles
 %
-% input  :	messages		- array of warnings
-%		values			- structure of derived values
-%		di
-%		p			- structure of processing parameters
-%		ps			- structure of processing parameters
-%		dr
-%		iplot		[0]	- plot results (1) or not (0)
+% input  :  messages    - array of warnings
+%           values      - structure of derived values
+%           di
+%           p           - structure of processing parameters
+%           ps          - structure of processing parameters
+%           dr
+%           iplot [0]   - plot results (1) or not (0)
 %
-% output :	messages		- array of warnings
-%		p			- structure of processing parameters
+% output :  messages    - array of warnings
+%           p           - structure of processing parameters
 %
 % - solve linear inverse problem
 %
-% version 0.5   last change 20.09.2007
+% version 0.7   last change 13.07.2012
 
 %  Martin Visbeck, LDEO, April-2000
-% small bug fix                                 GK, May 2007  	0.1-->0.2
-% increased minimum sadcp error to 0.01m/s	GK, Jul 2007	0.2-->0.3
-% changed exist commands			GK, Sep 2007	0.3-->0.4
-% catch ps.velerr==0				GK, Sep 2007	0.4-->0.5
+% small bug fix                                        GK, May 2007  0.1-->0.2
+% increased minimum sadcp error to 0.01m/s             GK, Jul 2007  0.2-->0.3
+% changed exist commands                               GK, Sep 2007  0.3-->0.4
+% catch ps.velerr==0                                   GK, Sep 2007  0.4-->0.5
+% plot supens std based weights                        GK, 10.06.2011  0.5-->0.6
+% renamed cosd and sind to cos_d and sin_d             GK, 13.07.2012  0.6-->0.7
 
 %
 % general function info
@@ -32,7 +34,7 @@ disp('GETINV:  compute optimal velocity profile')
 
 
 if nargin<7 
-  iplot=0; 
+  iplot = 0; 
 end
 
 
@@ -74,7 +76,7 @@ end
 % Barotropic velocity error due to navigation error
 %
 ps = setdefv(ps,'barvelerr',2*p.nav_error/p.dt_profile);
-disp(['    Barotropic velocity error ',num2str(ps.barvelerr),' [m/s]'])
+disp(['    Barotropic (navigation) velocity error : ',num2str(ps.barvelerr),' [m/s]'])
 
 
 %
@@ -84,7 +86,7 @@ maxn = min(length(di.izd),7);
 sw = nstd(di.rw(di.izd(1:maxn),:)); 
 ii = find(sw>0);
 sw = nmedian(sw(ii))/tan(values.down_beam_angle*pi/180);
-disp(['    Super ensemble velocity error ',num2str(sw),' [m/s]'])
+disp(['    Super ensemble velocity error : ',num2str(sw),' [m/s]'])
 ps = setdefv(ps,'velerr',nmax([sw,0.02])); 
 if exist('dr','var')
   if isfield(dr,'uerr')
@@ -93,7 +95,8 @@ if exist('dr','var')
       if ps.velerr==0
         ps.velerr = 0.02;
       end
-      disp(['    Setting velocity error to:',num2str(ps.velerr),' [m/s]'])
+      disp(['    Setting velocity error to :',num2str(ps.velerr),' [m/s]'])
+      disp(['    RDI standard deviation (down,up) :',num2str(values.rdi_std),' [m/s]'])
     end
   end
 end
@@ -171,21 +174,36 @@ jbin = reshape(jbin,nbin*nt,1);
 %
 % derive data weight
 %
+weight_matrix_correlation_based = di.weight.^ps.weightpower;
+weight_matrix_supens_std_based = ps.velerr./di.ruvs+di.weight*0;
 if ps.std_weight~=1;
 
   % use correlation based estimator
-  disp('    Using correlation based weights')
-  wm = di.weight.^ps.weightpower;
+  disp('    Using correlation based weights (figure 16 middle graph)')
+  wm  = weight_matrix_correlation_based;
 
 else
 
   % use super ensemble based estimator
   disp(['    Using super ensemble std based weights normalized by ',...
-       num2str(ps.velerr),' m/s '])
-  wm = ps.velerr./di.ruvs+di.weight*0;
+       num2str(ps.velerr),' m/s (figure 16 lower graph)'])
+  wm  = weight_matrix_supens_std_based;
 
 end
+figload('tmp/16.fig',2)
+subplot(3,1,3);
+imagesc(weight_matrix_supens_std_based);
+csc = caxis;
+colorbar
+xlabel('Super Ensemble #');
+ylabel('Bin #');
+title('Weights based on standard deviation of super ensembles')
+
+streamer([p.name,' Figure 16']);
+hgsave('tmp/16')
+
 wm = reshape(wm,nt*nbin,1);
+
 
 
 %
@@ -197,7 +215,7 @@ zctd = di.z;
 slat = di.slat;
 slon = di.slon;
 if isfinite(sum(slon+slat))
-  xship = (slon-slon(1))*60*1852*cosd(values.lat);
+  xship = (slon-slon(1))*60*1852*cos_d(values.lat);
   yship = (slat-slat(1))*60*1852;
   uship = diff(xship)./diff(tim)/(86400);
   vship = diff(yship)./diff(tim)/(86400);
@@ -333,6 +351,7 @@ A2 = lainseta(izv,ps.dz);
 % resulting depth vector
 %z =([1:nz]'-.5)*ps.dz;
 z = [1:nz]'*ps.dz;
+
 
 A1o = A1;
 A2o = A2;
@@ -559,7 +578,7 @@ dr.tim_hour = (tim-fix(tim(1)))*24;
 if sum(isfinite(slat+slon))>0 | ps.dragfac>0
   dr.shiplon = slon;
   dr.shiplat = slat;
-  dr.xship = (slon-slon(1))*60*1852*cosd(values.lat);
+  dr.xship = (slon-slon(1))*60*1852*cos_d(values.lat);
   dr.yship = (slat-slat(1))*60*1852;
   dr.uship = real(shipvel);
   dr.vship = imag(shipvel);
@@ -888,41 +907,41 @@ function [Ao,Ac,d,ubot,ibot]=lainbott(dbvel,bvel,bvelw,Ao,Ac,d,botfacin)
 % ubot (:,1) = mean velocity
 % ubot (:,2) = error
 % ibot depth index
-[li,ljo]=size(Ao);
+[li,ljo] = size(Ao);
 
 if nargin<5, 
-  botfacin=1; 
+  botfacin = 1; 
 end
 
-ibot=find(isfinite(dbvel));
-dbot=(d(ibot)-dbvel(ibot));
-Aob=Ao(ibot,:);
+ibot = find(isfinite(dbvel));
+dbot = (d(ibot)-dbvel(ibot));
+Aob = Ao(ibot,:);
 
 if nargout>3
   disp('    Bottom inversion ')
   % minimum number of estimates
-  nmin=3;
-  Ab=Aob;
-  s=sum(Ab>0)>=(nmin);
-  ibot=find(s==1);
+  nmin = 3;
+  Ab = Aob;
+  s = sum(Ab>0)>=(nmin);
+  ibot = find(s==1);
   % remove empty vertical depth
-  id=find(s==0);
-  Ab(:,id)=[];
+  id = find(s==0);
+  Ab(:,id) = [];
   if length(ibot)>1
     % solve
     %[ubot,uebot]=lesqfit(dbot,Ab);
     % ubot=lesqchol(dbot,Ab);
-    [m,me]=lesqfit(dbot,Ab);
-    ubot=[full(m),abs(full(me))];
-    velerr=min(abs(full(me)));
-    botfac=botfacin./ubot(:,2)*velerr;
-    igood=find(ubot(:,2)<2*median(ubot(:,2)));
-    ubot=ubot(igood,:);
-    ibot=ibot(igood);
+    [m,me] = lesqfit(dbot,Ab);
+    ubot = [full(m),abs(full(me))];
+    velerr = min(abs(full(me)));
+    botfac = botfacin./ubot(:,2)*velerr;
+    igood = find(ubot(:,2)<2*median(ubot(:,2)));
+    ubot = ubot(igood,:);
+    ibot = ibot(igood);
   else
     disp('    Not enough bottom track data for bottom inversion ')
-    ubot=[];
-    botfac=botfacin;
+    ubot = [];
+    botfac = botfacin;
   end 
 end
 

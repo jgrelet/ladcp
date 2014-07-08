@@ -219,12 +219,31 @@ data(fld) = fread(fid,1,'ushort');
 d.xmit_lag = data(fld);
 
 % CPU board serial number
-dummy = fread(fid,8,'uint8');
+for n=1:8
+  cpu(n) = fread(fid,1,'uchar');
+end
+d.cpu_board_serial_number = cpu;
 
-% bandwidth NB=1  BB=0
+% System bandwidth
 fld = fld+1;
-data(fld) = fread(fid,1,'uint16');
-d.bandwidth = data(fld);
+data(fld) = fread(fid,1,'ushort');
+d.system_bandwidth = data(fld);
+
+% System power
+fld = fld+1;
+data(fld) = fread(fid,1,'uint8');
+d.system_power = data(fld);
+
+% spare
+fld = fld+1;
+data(fld) = fread(fid,1,'uchar');
+
+% Instrument Serial Number
+for n=1:2
+  serial_number(n) = fread(fid,1,'uchar');
+end
+d.instrument_serial_number = serial_number;
+
 
 %--------------------------------------
 

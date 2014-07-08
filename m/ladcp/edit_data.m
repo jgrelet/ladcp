@@ -1,15 +1,17 @@
-function d = edit_data(d,p)
-% function d = edit_data(d,p)
+function d = edit_data(d,p,values)
+% function d = edit_data(d,p,values)
 %
 % perform data editing (e.g. sidelobes, previous-ping interference, &c)
 %
-% version 0.4	last change 24.07.2008
+% version 0.6	last change 13.07.2012
 
 % original A.Thurnherr/M.Visbeck
 
-% changed sidelobe application bins     GK, Sep 2007    0.1-->0.2
-% introduced masking of the last bin    GK, Mar 2008    0.2-->0.3
-% moving maxbinrange to here            GK, 24.07.2008  0.3-->0.4
+% changed sidelobe application bins                    GK, Sep 2007    0.1-->0.2
+% introduced masking of the last bin                   GK, Mar 2008    0.2-->0.3
+% moving maxbinrange to here                           GK, 24.07.2008  0.3-->0.4
+% more than last bin masking                           GK, 13.05.2011  0.4-->0.5
+% renamed cosd and sind to cos_d and sin_d             GK, 13.07.2012  0.5-->0.6
 
 %
 % general function info
@@ -89,7 +91,7 @@ if p.edit_sidelobes
 % to only up, GK Sep 2007
     zlim = d.izm;
     for b=d.izu
-      zlim(b,:) = (1 - cosd(d.up.Beam_angle)) * d.z ...
+      zlim(b,:) = (1 - cos_d(d.up.Beam_angle)) * d.z ...
 		- 0.015*d.up.Cell_length;
     end
     ibad = find(d.izm > zlim);
@@ -106,7 +108,7 @@ if p.edit_sidelobes
   zlim = d.izm;
   for b = d.izd
     zlim(b,:) = -p.zbottom ...
-	      + (1 - cosd(d.down.Beam_angle)) * (d.z+p.zbottom) ...
+	      + (1 - cos_d(d.down.Beam_angle)) * (d.z+p.zbottom) ...
 	      + 0.015*d.down.Cell_length;
   end
   ibad = find(d.izm < zlim);
@@ -175,7 +177,7 @@ if p.edit_PPI
   %PPI_max_z = -p.zbottom + SS * dt/2 * cos(pi/180 * PPI_min_beam_angle);
   %PPI_min_z = -p.zbottom + SS * dt/2 * cos(pi/180 * PPI_max_beam_angle);
   
-  PPI_hab = SS * dt/2 * cosd(d.down.Beam_angle);
+  PPI_hab = SS * dt/2 * cos_d(d.down.Beam_angle);
   PPI_hab(find(PPI_hab > p.edit_PPI_max_hab)) = inf;
   
   PPI_min_z = -p.zbottom + PPI_hab - p.edit_PPI_layer_thickness / 2;
@@ -183,18 +185,12 @@ if p.edit_PPI
   
   % remove the contaminated data from the downlooker bins
   
-%  for b=length(d.zu)+1:length(d.zu)+length(d.zd)
-  bb=length(d.zu)+1:length(d.zu)+length(d.zd);
-  if isany(bb~=d.izd)
-    222
-  end
   for b=d.izd
     ibad = find(d.izm(b,2:end) > PPI_min_z & d.izm(b,2:end) < PPI_max_z) + 1;
     nbad = nbad + length(find(isfinite(d.weight(b,ibad))));
     d.weight(b,ibad) = NaN; 
     d.ts_edited(b,ibad) = NaN;
   end
-  
   disp(sprintf('    Previous-ping interference: set %d weights to NaN',nbad));
 
 end %if p.edit_PPI
@@ -228,18 +224,38 @@ end % if p.edit_skip_ensembles enabled
 % Last Bin Masking
 %----------------------------------------------------------------------
 
-if p.edit_mask_last_bin==1
+if p.edit_mask_last_bin(1)~=0
 
+  if length(p.edit_mask_last_bin)>1
+    mask_dn = p.edit_mask_last_bin(1);
+    mask_up = p.edit_mask_last_bin(2);
+  else
+    mask_dn = p.edit_mask_last_bin;
+    mask_up = p.edit_mask_last_bin;
+  end
+ 
+  
   nbad = 0;
   dummy = d.weight;
   for n=1:size(d.weight,2)
-    ind = find(~isnan(d.weight(:,n)));
+%    ind = find(~isnan(d.weight(:,n)));
+    ind = find(d.weight(:,n)>0);
     if ~isempty(ind) 
-      if ind(1)~=1
-        d.weight(ind(1),n) = nan;
+%      if ind(1)~=1
+%        d.weight(ind(1),n) = nan;
+%      end
+%      if ind(end)~=size(d.weight,1)
+%        d.weight(ind(end),n) = nan;
+%      end
+      for m=1:mask_up
+        if m<=length(ind)
+          d.weight(ind(m),n) = nan;
+        end
       end
-      if ind(end)~=size(d.weight,1)
-        d.weight(ind(end),n) = nan;
+      for m=1:mask_dn
+        if m<=length(ind)
+          d.weight(ind(end+1-m),n) = nan;
+        end
       end
     end
   end
@@ -250,6 +266,75 @@ if p.edit_mask_last_bin==1
 end % if bin masking enabled
 
 
+%----------------------------------------------------------------------
+% Smoothed minimum correlation threshold
+%----------------------------------------------------------------------
+
+if any(p.minimum_correlation_threshold>0)
+  if values.up==0
+    cm = d.cm;
+    bad = (cm<p.minimum_correlation_threshold(1));
+    firstbad = size(bad,1)*ones(1,size(bad,2));
+    for n=1:size(bad,2)
+      dummy = find(bad(:,n));
+      if ~isempty(dummy)
+        firstbad(n) = dummy(1);
+      end
+    end
+    firstbad = round(meanfilt(firstbad,50));
+    newweight = d.weight;
+    for n=1:length(firstbad)
+      if firstbad(n)<=size(bad,1)
+        newweight(firstbad(n):end,n) = nan;
+      end
+    end
+    nbad = sum(isnan(newweight(:)))-sum(isnan(d.weight(:)));
+    d.weight = newweight;
+  else
+    if length(p.minimum_correlation_threshold)==1
+      p.minimum_correlation_threshold = p.minimum_correlation_threshold*[1,1];
+    end
+    % first do down-part
+    cm = d.cm(d.izd,:);
+    bad = (cm<p.minimum_correlation_threshold(1));
+    firstbad = size(bad,1)*ones(1,size(bad,2));
+    for n=1:size(bad,2)
+      dummy = find(bad(:,n));
+      if ~isempty(dummy)
+        firstbad(n) = dummy(1);
+      end
+    end
+    firstbad = round(meanfilt(firstbad,50));
+    newweight = d.weight(d.izd,:);
+    for n=1:length(firstbad)
+      if firstbad(n)<=size(bad,1)
+        newweight(firstbad(n):end,n) = nan;
+      end
+    end
+    nbad1 = sum(isnan(newweight(:)))-sum(sum(isnan(d.weight(d.izd,:))));
+    d.weight(d.izd,:) = newweight;
+    % then do up part
+    cm = d.cm(d.izu,:);
+    bad = (cm<p.minimum_correlation_threshold(2));
+    firstbad = size(bad,1)*ones(1,size(bad,2));
+    for n=1:size(bad,2)
+      dummy = find(bad(:,n));
+      if ~isempty(dummy)
+        firstbad(n) = dummy(1);
+      end
+    end
+    firstbad = round(meanfilt(firstbad,50));
+    newweight = d.weight(d.izu,:);
+    for n=1:length(firstbad)
+      if firstbad(n)<=size(bad,1)
+        newweight(firstbad(n):end,n) = nan;
+      end
+    end
+    nbad = nbad1 + sum(isnan(newweight(:)))-sum(sum(isnan(d.weight(d.izu,:))));
+    d.weight(d.izu,:) = newweight;
+  end
+  disp(sprintf('    Minimum corr. threshold   : set %d weights to NaN',nbad));
+end
 
 %----------------------------------------------------------------------
 % Plot Results of Editing
@@ -275,6 +360,7 @@ imagesc([1:size(d.ts,2)],bin_no,...
 	 d.ts(size(d.ts,1)-length(d.zd)+1:end,:)...
         ]);
 csc = caxis;
+colorbar
 xlabel('Ensemble #');
 ylabel('Bin #');
 title('Before Data Editing');
@@ -286,6 +372,7 @@ imagesc([1:size(d.ts,2)],bin_no,...
 	 d.ts_edited(size(d.ts,1)-length(d.zd)+1:end,:)...
         ]);
 csc = caxis;
+colorbar
 xlabel('Ensemble #');
 ylabel('Bin #');
 title('After Data Editing');
@@ -309,6 +396,7 @@ imagesc([1:size(d.cm,2)],bin_no,...
 	 d.cm(size(d.cm,1)-length(d.zd)+1:end,:)...
         ]);
 csc = caxis;
+colorbar
 xlabel('Ensemble #');
 ylabel('Bin #');
 title('Before Data Editing');
@@ -320,6 +408,7 @@ imagesc([1:size(d.cm,2)],bin_no,...
 	 d.cm_edited(size(d.cm,1)-length(d.zd)+1:end,:)...
         ]);
 csc = caxis;
+colorbar
 xlabel('Ensemble #');
 ylabel('Bin #');
 title('After Data Editing');

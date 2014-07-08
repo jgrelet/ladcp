@@ -11,9 +11,9 @@ function [strlat,strlon] = str2pos(pos,pos2)
 % version 1.1.0         last change 17.09.2007
 
 % Gerd Krahmann, IfM Kiel, Jun 1995
-% added backwards compatibility of input args G.Krahmann	1.0.0-->1.0.1
-% added degree signs G.K.					1.0.1-->1.0.2
-% degree signs for different versions				1.0.2-->1.1.0
+% added backwards compatibility of input args G.Krahmann    1.0.0-->1.0.1
+% added degree signs G.K.                                   1.0.1-->1.0.2
+% degree signs for different versions                       1.0.2-->1.1.0
 
 if nargin==2
   pos = [pos,pos2];

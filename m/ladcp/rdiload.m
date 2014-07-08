@@ -1,9 +1,9 @@
-function [l,values,messages,params] = rdiload(files,params,messages,values);
-% function [l,values,messages,params] = rdiload(files,params,messages,values);
+function [data,values,messages,params] = rdiload(files,params,messages,values)
+% function [data,values,messages,params] = rdiload(files,params,messages,values)
 %
 % RDILOAD Load and merge upward and downward looking ADCP raw data.
 %
-% L is the main output structure array with the following fields:
+% data is the main output structure array with the following fields:
 %
 %    blen: bin length
 %    nbin: number of bins
@@ -29,7 +29,7 @@ function [l,values,messages,params] = rdiload(files,params,messages,values);
 %      eb: bottom track error velocity
 %  instid: instrument serial numbers
 %
-% version 0.9	last change 24.07.2008
+% version 0.15	last change 07.03.2012
 
 % originally Christian Mertens, IfM Kiel
 % G. Krahmann, IFM-GEOMAR, June 2006
@@ -44,6 +44,12 @@ function [l,values,messages,params] = rdiload(files,params,messages,values);
 % added params.up2down to control resampling    GK, 11.07.2008  0.7-->0.8
 % removed maxbinrange as parameter, introduced
 % clear_ladcp_pressure as parameter             GK, 24.07.2008  0.8-->0.9
+% read instrument serial number                 GK, 13.05.2011  0.9-->0.10
+% use error velocity in bestlag preparation     GK, 14.05.2011  0.10-->0.11
+% rename l to data to be consistent             GK, 28.05.2011  0.11-->0.12
+% renamed cosd and sind to cos_d and sin_d      GK, 31.05.2011  0.12-->0.13
+% bug in renaming l to data                     GK, 25.08.2011  0.13-->0.14
+% time interpolation only up to 10 seconds      GK, 07.03.2012  0.14-->0.15
 
 %
 % general function info
@@ -72,6 +78,8 @@ f.dist = 5;   % distance to the middle of the first depth cell
 f.plen = 6;   % transmit pulse length
 % why was the following implemented as a STRING ????   GK
 f.serial = 7:14; % serial number of CPU board
+f.bandwidth = 15; % bandwidth
+f.serial_instrument = 16:19; % serial number of the instrument
 
 % variable leader
 v.tim = 1;    % true time (Julian days)
@@ -92,7 +100,7 @@ v.presstd = 12; % internal pressure standard deviation
 % time_matching preset, will be set to one, if multiple files are
 % encountered
 %
-time_matching = 0;
+%time_matching = 0;
 
 
 %
@@ -122,14 +130,14 @@ if isbb(fid_dn)
   else
     fclose(fid_dn);
     [fd,vd,veld,cmd,ead,pgd,btd] = whread_multi(fdown);
-    [fid_dn,message] = fopen(fdown(1,:),'r','l');
-    time_matching = 1;
+    fid_dn = fopen(fdown(1,:),'r','l');
+   % time_matching = 1;
   end    
-  l.bbadcp = 1;
+  data.bbadcp = 1;
 
 
   % check for short blank and no masked bins
-  if fd(f.blnk)==0 & isempty(params.edit_mask_dn_bins)
+  if fd(f.blnk)==0 && isempty(params.edit_mask_dn_bins)
     disp('>   Found 0m blank length and no masking of first downlooker bin.')
     disp('>   Recommend setting  p.edit_mask_dn_bins  .')
   end
@@ -144,7 +152,7 @@ else
   fid_dn = fopen(fdown,'r','b');
   disp('    Detected NB data')
   [fd,vd,veld,swd,ead,pgd] = nbread(fid_dn);
-  l.bbadcp = 0;
+  data.bbadcp = 0;
 
 
   %
@@ -160,7 +168,7 @@ else
   % 
   ok = double( prod(veld,3)~=sum(veld,3) );
   [ok,ind] = replace( ok, ok==0, nan); 
-  if length(ind)>0
+  if ~isempty(ind)
     disp('>   Special problem with NB data:')
     disp(['      replaced ',int2str(length(ind)),' records because of all 0s'])
     veld = veld.*repmat(ok,[1,1,4]);
@@ -173,15 +181,28 @@ disp(['    Read ',int2str(l1),' ensembles with ',int2str(l2),' bins each'])
 
 
 %
+% do the full bin removal, if requested
+%
+if ~isempty(params.edit_hardremove_mask_dn_bins);
+  veld(:,params.edit_hardremove_mask_dn_bins,:) = nan;
+  pgd(:,params.edit_hardremove_mask_dn_bins,:) = nan;
+  ead(:,params.edit_hardremove_mask_dn_bins,:) = nan;
+  cmd(:,params.edit_hardremove_mask_dn_bins,:) = nan;
+end
+
+
+%
 % check for data stored in beam coordinates and rotate them to
 % earth coordinates
 %
 dd = rditype(fid_dn);
-l.down = dd;
+data.down = dd;
+data.down.rdi_std = calc_rdi_std(data.down);
+values.rdi_std(1) = data.down.rdi_std;
 if dd.Coordinates==0
   disp('>   Detected BEAM coordinates: rotating to EARTH coordinates')
   if dd.Frequency==1200
-    l.d1200.veld_beam = veld;
+    data.d1200.veld_beam = veld;
   end
   veld = b2earth(veld,vd,dd);
 end
@@ -194,16 +215,16 @@ if dd.Frequency==1200
   count = 1;
 
   % backup unaveraged data
-  l.d1200.veld = veld;
-  l.d1200.cmd = cmd;
-  l.d1200.ead = ead;
-  l.d1200.pgd = pgd;
-  l.d1200.fd = fd;
+  data.d1200.veld = veld;
+  data.d1200.cmd = cmd;
+  data.d1200.ead = ead;
+  data.d1200.pgd = pgd;
+  data.d1200.fd = fd;
 
   % blank out first few meters when being raised
   nearbins = find(zd<params.extra_blank_1200);
   vertvel = nmean( squeeze( veld(:,:,3) )' );
-  upvel = find(vertvel<0);
+  upvel = (vertvel<0);  % removed a find GK 20.05.2011
   veld(upvel,nearbins,:) = nan;
    
   % a 1200kHz measures very close to the rosette
@@ -215,7 +236,7 @@ if dd.Frequency==1200
   pgd(bad) = nan;
   for n=1:params.nav_1200:nbins 
     ind = [1:params.nav_1200]+n-1;
-    ind = ind( find( ind<=nbins ) );
+    ind = ind( ( ind<=nbins ) );   % removed a find  GK, 20.05.2011
     nveld(:,count,:) = nmean(veld(:,ind,:),2);
     ncmd(:,count,:) = nmean(cmd(:,ind,:),2);
     nead(:,count,:) = nmean(ead(:,ind,:),2);
@@ -258,16 +279,16 @@ ead = median(ead,3);
 cmd = median(cmd,3);
 
 if sum(isfinite(btd(:)))>0
-  l.btrk_used = 1;
+  data.btrk_used = 1;
 else
-  l.btrk_used = 0;
+  data.btrk_used = 0;
 end
 
 
 %
 % transform to earth coordinates
 %
-if l.btrk_used == 1
+if data.btrk_used == 1
   db = rditype(fid_dn);
   if db.Coordinates==0
     for n=1:4
@@ -294,10 +315,10 @@ fclose(fid_dn);
 % apply percent-good threshold
 %
 pgd = pgd(:,:,4);
-ind = pgd < pglim;
+ind = (pgd < pglim);
 pgd(ind) = NaN;
 pgd(~ind) = 1;
-if length(find(ind)) > 0
+if any(ind)
   disp(sprintf('    Removed %d downlooker values because of percent good < %g',...
 		length(find(ind)),pglim));
   veld = veld.*repmat(pgd,[1,1,4]);
@@ -333,12 +354,12 @@ if values.up==1
     fclose(fid_up);
     [fu,vu,velu,cmu,eau,pgu,btu] = whread_multi(fup);
     [fid_up,message] = fopen(fup(1,:),'r','l');
-    time_matching = 1;
+%    time_matching = 1;
   end    
 
 
   % check for short blank and no masked bins
-  if fu(f.blnk)==0 & isempty(params.edit_mask_up_bins)
+  if fu(f.blnk)==0 && isempty(params.edit_mask_up_bins)
     disp('>   Found 0m blank length and no masking of first uplooker bin.')
     disp('>   Recommend setting  p.edit_mask_up_bins  .')
   end
@@ -353,11 +374,13 @@ if values.up==1
   % check for beam coordinates
   du = rditype(fid_up);
   fclose(fid_up);
-  l.up = du;
+  data.up = du;
+  data.up.rdi_std = calc_rdi_std(data.up);
+  values.rdi_std(2) = data.up.rdi_std;
   if du.Coordinates==0
     disp('>   DETECTED BEAM coordinates: rotating to EARTH coordinates')
     if du.Frequency==1200
-      l.d1200.velu_beam = velu;
+      data.d1200.velu_beam = velu;
     end
     velu = b2earth(velu,vu,du);
   end
@@ -372,12 +395,12 @@ if values.up==1
     count = 1;
 
     % backup unaveraged data
-    l.d1200.velu = velu;
-    l.d1200.cmu = cmu;
-    l.d1200.eau = eau;
-    l.d1200.pgu = pgu;
-    l.d1200.fu = fu;
-    l.d1200.vu = vu;
+    data.d1200.velu = velu;
+    data.d1200.cmu = cmu;
+    data.d1200.eau = eau;
+    data.d1200.pgu = pgu;
+    data.d1200.fu = fu;
+    data.d1200.vu = vu;
 
     % blank out first few meters when being lowered
     nearbins = find(zu<params.extra_blank_1200);
@@ -446,13 +469,13 @@ if values.up==1
 
   % apply percent-good threshold
   pgu = pgu(:,:,4);
-  i = pgu < pglim;
-  if length(find(i)) > 0
+  ind = (pgu < pglim);
+  if any(ind)
     disp(sprintf('    Removed %d uplooker values because of percent good < %g',...
-	 	  length(find(i)),pglim));
+	 	  length(find(ind)),pglim));
   end
-  pgu(i) = NaN;
-  pgu(~i) = 1;
+  pgu(ind) = NaN;
+  pgu(~ind) = 1;
   for k = 1:4
     velu(:,:,k) = velu(:,:,k).*pgu;
   end
@@ -465,6 +488,39 @@ idb = [1:fd(f.nbin)];
 
 if values.up==1
   iub = [1:fu(f.nbin)];
+
+
+  % 
+  % in case instruments are not synchronized and one instruments starts late, then
+  % the following routines will fail
+  % to solve the problem we need to prepad the data set of the late starting 
+  % instrument
+  %
+  if vu(1,1,v.tim)-vd(1,1,v.tim)>10/86400
+    disp('data at beginning of uplooker is missing')
+    dt = nmean(diff(vu(:,1,v.tim)));
+    extra_ind = round((vu(1,1,v.tim)-vd(1,1,v.tim))/dt);
+    dummy = nan*vu(ones(extra_ind,1),1,:);
+    vu = [dummy;vu];
+    vu(1:extra_ind,1,v.tim) = vu(extra_ind+1,1,v.tim)-[extra_ind:-1:1]*dt;
+    vu(1:extra_ind,1,v.pit) = 0;
+    vu(1:extra_ind,1,v.rol) = 0;
+    vu(1:extra_ind,1,v.hdg) = 0;
+    velu = velu([ones(extra_ind,1);[1:size(velu,1)]'],:,:);
+    velu(1:extra_ind,:,:) = nan;
+    pgu = pgu([ones(extra_ind,1);[1:size(pgu,1)]'],:,:);
+    pgu(1:extra_ind,:,:) = nan;
+    eau = eau([ones(extra_ind,1);[1:size(eau,1)]'],:,:);
+    eau(1:extra_ind,:,:) = nan;
+    cmu = cmu([ones(extra_ind,1);[1:size(cmu,1)]'],:,:);
+    cmu(1:extra_ind,:,:) = nan;
+    btu = btu([ones(extra_ind,1);[1:size(btu,1)]'],:,:);
+    btu(1:extra_ind,:,:) = nan;
+  elseif vd(1,1,v.tim)-vu(1,1,v.tim)>20/86400
+    disp('data at beginning of downlooker is missing')
+    error('this is not yet coded. Contact Gerd Krahmann for help.')
+  end
+
 
   %
   % check if ping rate is the same for both instruments
@@ -483,7 +539,7 @@ if values.up==1
 
   end
 
-  if  abs(nmedian(diff(timd))-nmedian(diff(timu))) > 0.05/24/3600
+  if  abs(nmedian(diff(timd))-nmedian(diff(timu))) > 0.05/24/3600  |  params.force_resample_uplooker==1
     warn=('>   Average ping rates differ between instruments ');
     disp(warn)
     messages.warn = strvcat(messages.warn,warn);
@@ -493,7 +549,7 @@ if values.up==1
     if params.up2down==1
       disp(['>   Resampling up instrument to down instrument''s timing.'])
       iu = [1:length(timd)];
-      ii = find(iu>length(timu));
+      ii = (iu>length(timu));  % removed a find  GK, 20.05.2011
       iu(ii) = length(timu);
       for i=find(isfinite(timd))
         [m,iu(i)] = min(abs(timu-timd(i)));
@@ -505,7 +561,7 @@ if values.up==1
     else
       disp(['>   Resampling down instrument to up instrument''s timing.'])
       id = [1:length(timu)];
-      ii = find(id>length(timd));
+      ii = (id>length(timd));  % removed a find  GK, 20.05.2011
       id(ii) = length(timd);
       for i=find(isfinite(timu))
         [m,id(i)] = min(abs(timd-timu(i)));
@@ -514,6 +570,9 @@ if values.up==1
       disp(['>   Cast ends now differ by ',num2str(id(ilast)-ilast),...
           ' ensembles'])
       iu = [1:length(timu)];
+      if any(isnan(id))
+        1
+      end
     end
   else
     id = [1:length(timd)];
@@ -522,73 +581,61 @@ if values.up==1
 
 
   % 
-  % find best lag to match up vertical velocity 
+  % find best lag between two instruments by matching vertical velocity 
   %
   wu = squeeze(velu(iu,:,3));
+  dummy = squeeze(velu(iu,:,4));
+  bad = find(isnan(dummy));
+  if ~isempty(bad)
+    wu(bad) = nan;
+  end
   wd = squeeze(veld(id,:,3));
+  dummy = squeeze(veld(id,:,4));
+  bad = find(isnan(dummy));
+  if ~isempty(bad)
+    wd(bad) = nan;
+  end
   wb2u = nmedian(wu');
   wb2d = nmedian(wd');
 
-  tic;
-  [lag1,iiu1,id1,co1] = bestlag(wb2u,wb2d,params.maxlag);
-  zeit = toc;
-  tic;
   if params.up2down==1
     [lag,iiu,id,co] = bestlag2(wb2u,wb2d);
   else
     [lag,iu,iid,co] = bestlag2(wb2u,wb2d);
   end
-  zeit2 = toc;
-  disp('BESTLAG TESTING:')
-  disp(['old result : ',int2str(lag1),' in ',num2str(zeit),'sec  corr ',...
-	num2str(co1)])
-  disp(['new result : ',int2str(lag),' in ',num2str(zeit2),'sec  corr ',...
-	num2str(co)])
-  if lag1~=lag
-    figure(3)
-    clf
-    plot(wb2u)
-    hold on
-    plot(wb2d,'r')
-    warn = 'DIFFERENT LAG RESULTS !!!  CHECK NEW ROUTINE';
-    disp(warn)
-    title(warn)
-    xlabel('time')
-    ylabel('vertical velocity')
-    messages.warn = strvcat(messages.warn,warn);
+  if params.bestlag_testing_on==1 | co<0.9
+    [lag1,iiu1,id1,co1] = bestlag(wb2u,wb2d,params.maxlag);
+    disp('BESTLAG confirmation using old routine:')
+    disp(['old result : ',int2str(lag1),' time steps   correlation : ',...
+    	num2str(co1)])
+    disp(['new result : ',int2str(lag1),' time steps   correlation : ',...
+      num2str(co)])
+    if lag1~=lag
+      figure(3)
+      clf
+      plot(wb2u)
+      hold on
+      plot(wb2d,'r')
+      warn = 'DIFFERENT LAG RESULTS !!!  CHECK NEW ROUTINE';
+      disp(warn)
+      title(warn)
+      xlabel('time')
+      ylabel('vertical velocity')
+      messages.warn = strvcat(messages.warn,warn);
+    end
   end
   if lag>20
     warn = ['>   Found LARGE timing difference between ADCPs !'];
     messages.warn = strvcat(messages.warn,warn);
   end 
 
-if 0
-  if abs(lag)==params.maxlag | co<0.8 | time_matching==1
-    disp('>   Best lag not obvious!  Using time to match up-down looking ADCPs')
-    disp(['>   Correlation: ',num2str(co),'   < 0.8'])
-    id = [1:length(timd)];
-    iu = [1:length(timd)];
-    ii = find(iu>length(timu));
-    iu(ii) = length(timu);
-    for n = find(isfinite(timd))
-      [m,iu(n)] = min(abs(timu-timd(n)));
-    end
-    lag = mean(iu-id);
-    disp(['    Mean lag is ',num2str(lag),' ensembles']);
-  else
-    disp(['    Shifting ADCP timeseries by ',num2str(lag),' ensembles']);
-    disp(['    Time-lag: ',num2str(lag),'  correlation: ',num2str(co)])
+  disp(['    Shifting ADCP timeseries by ',num2str(lag),' ensembles']);
+  disp(['    Time-lag: ',num2str(lag),' time steps    Correlation : ',num2str(co)])
+  if params.up2down==1
     iu = iu(iiu);
+  else
+    id = id(iid);
   end
-else
-    disp(['    Shifting ADCP timeseries by ',num2str(lag),' ensembles']);
-    disp(['    Time-lag: ',num2str(lag),'  correlation: ',num2str(co)])
-    if params.up2down==1
-      iu = iu(iiu);
-    else
-      id = id(iid);
-    end
-end
 
   disp(['    Number of joint ensembles is : ',num2str(length(iu))]);
 
@@ -596,160 +643,189 @@ end
   %
   % parse instrument serial numbers
   %
-  l.serial_cpu_u = fu(f.serial);
-  l.serial_cpu_d = fd(f.serial);
-  values.instid(1) = prod(l.serial_cpu_d+1) + sum(l.serial_cpu_d);
-  values.instid(2) = prod(l.serial_cpu_u+1) + sum(l.serial_cpu_u);
-
+  data.serial_cpu_u = fu(f.serial);
+  data.serial_cpu_d = fd(f.serial);
+  values.instid(1) = prod(data.serial_cpu_d+1) + sum(data.serial_cpu_d);
+  values.instid(2) = prod(data.serial_cpu_u+1) + sum(data.serial_cpu_u);
+  data.serial_inst_u = sum( fu(f.serial_instrument).*[1,256,256^2,256^3]);
+  data.serial_inst_d = sum( fd(f.serial_instrument).*[1,256,256^2,256^3]);
+  values.inst_serial(1) = data.serial_inst_d;
+  values.inst_serial(2) = data.serial_inst_u;
+  if abs(values.inst_serial(1))>1e6 | abs(values.inst_serial(2))>1e6
+    disp('>   Can not interpret serial number in raw data file.')
+    disp('>   This might happen because of an old firmware version')
+  else
+    params.down_sn = values.inst_serial(1);
+    params.up_sn = values.inst_serial(2);
+  end
+  if ~isnan(values.inst_serial(1))
+    disp(['    Down looking instrument ID : ',int2str(values.inst_serial(1))])
+  end
+  if ~isnan(values.inst_serial(2))
+    disp(['    Up looking instrument ID   : ',int2str(values.inst_serial(2))])
+  end
 
   %
   % merge upward and downward
   %
-  l.zu=[0:(fu(f.nbin)-1)]*fu(f.blen)+fu(f.dist);
-  l.zd=[0:(fd(f.nbin)-1)]*fd(f.blen)+fd(f.dist);
-  l.serial_cpu_u = fu(f.serial);
-  l.serial_cpu_d = fd(f.serial);
-  l.npng_u = fu(f.npng);
-  l.npng_d = fd(f.npng);
-  l.nens_u = size(vu,1);
-  l.nens_d = size(vd,1);
-  l.blen = fd(f.blen);
-  l.nbin = fd(f.nbin);
-  l.blnk = fd(f.blnk);
-  l.dist = fd(f.dist);
-  l.tim = [vd(id,1,v.tim),vu(iu,1,v.tim)]';
-  l.pit = [vd(id,1,v.pit),vu(iu,1,v.pit)]';
-  l.rol = [vd(id,1,v.rol),vu(iu,1,v.rol)]';
-  l.hdg = [vd(id,1,v.hdg),vu(iu,1,v.hdg)]';
-  l.s = [vd(id,1,v.s),vu(iu,1,v.s)]';
-  l.t = [vd(id,1,v.t),vu(iu,1,v.t)]';
-  l.sv = [vd(id,1,v.sv),vu(iu,1,v.sv)]';
-  l.xmc = [vd(id,1,v.xmc),vu(iu,1,v.xmc)]';
-  l.xmv = [vd(id,1,v.xmv),vu(iu,1,v.xmv)]';
-  l.tint = [vd(id,1,v.tint),vu(iu,1,v.tint)]';
-  l.pres = [vd(id,1,v.pres),vu(iu,1,v.pres)]';
-  l.presstd = [vd(id,1,v.presstd),vu(iu,1,v.presstd)]';
-  l.u = [fliplr(velu(iu,iub,1)) veld(id,idb,1)]';
-  l.v = [fliplr(velu(iu,iub,2)) veld(id,idb,2)]';
-  l.w = [fliplr(velu(iu,iub,3)) veld(id,idb,3)]';
-  l.e = [fliplr(velu(iu,iub,4)) veld(id,idb,4)]';
-  l.ts = [fliplr(eau(iu,iub)) ead(id,idb)]';
-  l.cm = [fliplr(cmu(iu,iub)) cmd(id,idb)]';
+  data.zu=[0:(fu(f.nbin)-1)]*fu(f.blen)+fu(f.dist);
+  data.zd=[0:(fd(f.nbin)-1)]*fd(f.blen)+fd(f.dist);
+  data.serial_cpu_u = fu(f.serial);
+  data.serial_cpu_d = fd(f.serial);
+  data.npng_u = fu(f.npng);
+  data.npng_d = fd(f.npng);
+  data.nens_u = size(vu,1);
+  data.nens_d = size(vd,1);
+  data.blen = fd(f.blen);
+  data.nbin = fd(f.nbin);
+  data.blnk = fd(f.blnk);
+  data.dist = fd(f.dist);
+  data.bandwidth = [fd(f.bandwidth),fu(f.bandwidth)];
+  data.tim = [vd(id,1,v.tim),vu(iu,1,v.tim)]';
+  data.pit = [vd(id,1,v.pit),vu(iu,1,v.pit)]';
+  data.rol = [vd(id,1,v.rol),vu(iu,1,v.rol)]';
+  data.hdg = [vd(id,1,v.hdg),vu(iu,1,v.hdg)]';
+  data.s = [vd(id,1,v.s),vu(iu,1,v.s)]';
+  data.t = [vd(id,1,v.t),vu(iu,1,v.t)]';
+  data.sv = [vd(id,1,v.sv),vu(iu,1,v.sv)]';
+  data.xmc = [vd(id,1,v.xmc),vu(iu,1,v.xmc)]';
+  data.xmv = [vd(id,1,v.xmv),vu(iu,1,v.xmv)]';
+  data.tint = [vd(id,1,v.tint),vu(iu,1,v.tint)]';
+  data.pres = [vd(id,1,v.pres),vu(iu,1,v.pres)]';
+  data.presstd = [vd(id,1,v.presstd),vu(iu,1,v.presstd)]';
+  data.u = [fliplr(velu(iu,iub,1)) veld(id,idb,1)]';
+  data.v = [fliplr(velu(iu,iub,2)) veld(id,idb,2)]';
+  data.w = [fliplr(velu(iu,iub,3)) veld(id,idb,3)]';
+  data.e = [fliplr(velu(iu,iub,4)) veld(id,idb,4)]';
+  data.ts = [fliplr(eau(iu,iub)) ead(id,idb)]';
+  data.cm = [fliplr(cmu(iu,iub)) cmd(id,idb)]';
 % No reason to keep this since pgu and pgd don't mean much anymore  
 %l.pg = [fliplr(pgu(iu,iub)) pgd(id,idb)]';
   if tssave(1)~=0
-    l.ts_all_u = eau_all(iu,iub,:);
-    l.ts_all_d = ead_all(id,idb,:);
+    data.ts_all_u = eau_all(iu,iub,:);
+    data.ts_all_d = ead_all(id,idb,:);
   end
   if cmsave(1)~=0
-    l.cm_all_u = cmu_all(iu,iub,:);
-    l.cm_all_d = cmd_all(id,idb,:);
+    data.cm_all_u = cmu_all(iu,iub,:);
+    data.cm_all_d = cmd_all(id,idb,:);
   end
   if pgsave(1)~=0
-    l.pg_all_u = pgu_all(iu,iub,:);
-    l.pg_all_d = pgd_all(id,idb,:);
+    data.pg_all_u = pgu_all(iu,iub,:);
+    data.pg_all_d = pgd_all(id,idb,:);
   end
 % distance to surface
   hs = median(btu(iu,1:4),2)';
   if sum(isfinite(hs))>1 & nsum(hs)>0
-    l.hs = hs;
+    data.hs = hs;
   else
     % try to use targetstrength to find surface
     if sum(isfinite(eau))>1
       disp('    Using target strength of up looking ADCP to find surface ')
-      eaum=nmedian(eau);
-      eaua=eau-meshgrid(eaum,eau(:,1));
-      [eam,hsb]=max(eaua(iu,:)');
-      l.hs=l.zu(hsb);
-      ii = find(eam<20);
+      eaum = nmedian(eau);
+      eaua = eau-meshgrid(eaum,eau(:,1));
+      [eam,hsb] = max(eaua(iu,:)');
+      data.hs = data.zu(hsb);
+      ii = (eam<20);  % removed a find  GK, 20.05.2011
       l.hs(ii) = NaN;
       ii = find(hsb==1 | hsb==size(eau,2));
-      l.hs(ii) = NaN;
+      data.hs(ii) = NaN;
     end
   end
 
-  l.hb = median(btd(id,1:4),2)';
-  l.hb4 = btd(id,1:4)';
-  l.ub = btd(id,5)';
-  l.vb = btd(id,6)';
-  l.wb = btd(id,7)';
-  l.eb = btd(id,8)';
-  l.tsd_m = ead_m;
-  l.cmd_m = cmd_m;
-  l.tsu_m = eau_m;
-  l.cmu_m = cmu_m;
+  data.hb = median(btd(id,1:4),2)';
+  data.hb4 = btd(id,1:4)';
+  data.ub = btd(id,5)';
+  data.vb = btd(id,6)';
+  data.wb = btd(id,7)';
+  data.eb = btd(id,8)';
+  data.tsd_m = ead_m;
+  data.cmd_m = cmd_m;
+  data.tsu_m = eau_m;
+  data.cmu_m = cmu_m;
   for n = 1:4
-    [dummy,ir] = min(abs(l.cmu_m(:,n)-max(l.cmu_m(1,:))*0.3));
-    params.up_range(n) = l.zu(ir);
-    [dummy,ir] = min(abs(l.cmd_m(:,n)-max(l.cmd_m(1,:))*0.3));
-    params.dn_range(n) = l.zd(ir);
+    [dummy,ir] = min(abs(data.cmu_m(:,n)-max(data.cmu_m(1,:))*0.3));
+    params.up_range(n) = data.zu(ir);
+    [dummy,ir] = min(abs(data.cmd_m(:,n)-max(data.cmd_m(1,:))*0.3));
+    params.dn_range(n) = data.zd(ir);
   end
-
+  
 else
 
-  l.zd=[0:(fd(f.nbin)-1)]*fd(f.blen)+fd(f.dist);
-  l.serial_cpu_d = fd(f.serial);
-  l.blen = fd(f.blen);
-  l.npng_d = fd(f.npng);
-  l.nens_d = length(vd(v.tim));
-  l.nbin = fd(f.nbin);
-  l.blnk = fd(f.blnk);
-  l.dist = fd(f.dist);
-  l.tim = vd(:,1,v.tim)';
-  l.pit = vd(:,1,v.pit)';
-  l.rol = vd(:,1,v.rol)';
-  l.hdg = vd(:,1,v.hdg)';
-  l.s = vd(:,1,v.s)';
-  l.t = vd(:,1,v.t)';
-  l.sv = vd(:,1,v.sv)';
-  l.xmc = vd(:,1,v.xmc)';
-  l.xmv = vd(:,1,v.xmv)';
-  l.tint = vd(:,1,v.tint)';
-  l.pres = vd(:,1,v.pres)';
-  l.presstd = vd(:,1,v.presstd)';
-  l.hdg = vd(:,1,v.hdg)';
-  l.u = veld(:,idb,1)';
-  l.v = veld(:,idb,2)';
-  l.w = veld(:,idb,3)';
-  l.e = veld(:,idb,4)';
-  l.ts = ead(:,idb)';
+  data.zd=[0:(fd(f.nbin)-1)]*fd(f.blen)+fd(f.dist);
+  data.serial_cpu_d = fd(f.serial);
+  data.blen = fd(f.blen);
+  data.npng_d = fd(f.npng);
+  data.nens_d = length(vd(v.tim));
+  data.nbin = fd(f.nbin);
+  data.blnk = fd(f.blnk);
+  data.dist = fd(f.dist);
+  data.bandwidth = fd(f.bandwidth);
+  data.tim = vd(:,1,v.tim)';
+  data.pit = vd(:,1,v.pit)';
+  data.rol = vd(:,1,v.rol)';
+  data.hdg = vd(:,1,v.hdg)';
+  data.s = vd(:,1,v.s)';
+  data.t = vd(:,1,v.t)';
+  data.sv = vd(:,1,v.sv)';
+  data.xmc = vd(:,1,v.xmc)';
+  data.xmv = vd(:,1,v.xmv)';
+  data.tint = vd(:,1,v.tint)';
+  data.pres = vd(:,1,v.pres)';
+  data.presstd = vd(:,1,v.presstd)';
+  data.hdg = vd(:,1,v.hdg)';
+  data.u = veld(:,idb,1)';
+  data.v = veld(:,idb,2)';
+  data.w = veld(:,idb,3)';
+  data.e = veld(:,idb,4)';
+  data.ts = ead(:,idb)';
   if tssave(1)~=0
-    l.ts_all_d = ead_all(:,idb,:);
+    data.ts_all_d = ead_all(:,idb,:);
   end
-  l.cm = cmd(:,idb)';
+  data.cm = cmd(:,idb)';
   if cmsave(1)~=0
-    l.cm_all_d = cmd_all(:,idb,:);
+    data.cm_all_d = cmd_all(:,idb,:);
   end
-  l.pg = pgd(:,idb)';
+  data.pg = pgd(:,idb)';
   if pgsave(1)~=0
-    l.pg_all_d = pgd_all(:,idb,:);
+    data.pg_all_d = pgd_all(:,idb,:);
   end
   % fix to reduce funny bottom track dimension
-  id = [1:length(l.tim)];
-  l.hb = median(btd(id,1:4),2)';
-  l.hb4 =btd(id,1:4)';
-  l.ub = btd(id,5)';
-  l.vb = btd(id,6)';
-  l.wb = btd(id,7)';
-  l.eb = btd(id,8)';
-  l.tsd_m = ead_m;
-  l.cmd_m = cmd_m;
+  id = [1:length(data.tim)];
+  data.hb = median(btd(id,1:4),2)';
+  data.hb4 = btd(id,1:4)';
+  data.ub = btd(id,5)';
+  data.vb = btd(id,6)';
+  data.wb = btd(id,7)';
+  data.eb = btd(id,8)';
+  data.tsd_m = ead_m;
+  data.cmd_m = cmd_m;
   for n = 1:4
-    [dummy,ir] = min(abs(l.cmd_m(:,n)-max(l.cmd_m(1,:))*0.3));
-    params.dn_range(n) = l.zd(ir);
+    [dummy,ir] = min(abs(data.cmd_m(:,n)-max(data.cmd_m(1,:))*0.3));
+    params.dn_range(n) = data.zd(ir);
   end
 
 
   %
   % parse instrument serial numbers
   %
-  l.serial_cpu_d = fd(f.serial);
-  values.instid(1) = prod(l.serial_cpu_d+1) + sum(l.serial_cpu_d);
-
+  data.serial_cpu_d = fd(f.serial);
+  values.instid(1) = prod(data.serial_cpu_d+1) + sum(data.serial_cpu_d);
+  data.serial_inst_d = sum( fd(f.serial_instrument).*[1,256,256^2,256^3]);
+  values.inst_serial(1) = data.serial_inst_d;
+  if abs(values.inst_serial(1))>1e6
+    disp('>   Can not interpret serial number in raw data file.')
+    disp('>   This might happen because of an old firmware version')
+  else
+    params.down_sn = values.inst_serial(1);
+  end
+  if ~isnan(values.inst_serial(1))
+    disp(['    Down looking instrument ID : ',int2str(values.inst_serial(1))])
+  end
+  
 end
 
-if l.btrk_used == 1
-  good = find(isfinite(l.wb));
+if data.btrk_used == 1
+  good = find(isfinite(data.wb));
   disp(['    Found ',int2str(length(good)),' finite RDI bottom velocities'])
 end
 
@@ -757,32 +833,32 @@ end
 %
 % discard dummy error velocities
 %
-bad = find(l.eb==-32.768);
+bad = find(data.eb==-32.768);
 if ~isempty(bad)
   disp(['    Found ',int2str(length(bad)),...
 	' NaN bottom error velocities and discarded them'])
-  l.eb(bad) = nan;
+  data.eb(bad) = nan;
 end
 
 
 %
 % check for 3-beam solution
 %
-if isfield(l,'zu')
-  ind = [1:length(l.zu)];
-  jok_up = cumprod(size(find(~isnan(l.w(ind,:)))));
-  j_up = cumprod(size(find(isnan(l.e(ind,:)) & ~isnan(l.w(ind,:)))));
-  ind = length(l.zu)+[1:length(l.zd)];
+if isfield(data,'zu')
+  ind = [1:length(data.zu)];
+  jok_up = cumprod(size(find(~isnan(data.w(ind,:)))));
+  j_up = cumprod(size(find(isnan(data.e(ind,:)) & ~isnan(data.w(ind,:)))));
+  ind = length(data.zu)+[1:length(data.zd)];
   if j_up/jok_up > 0.2
     warn=(['>   Detected  ',int2str(j_up*100/jok_up),' %  3 BEAM solutions up-looking']);
     disp(warn)
     messages.warn = strvcat(messages.warn,warn);
   end
 else
-  ind = [1:length(l.zd)];
+  ind = [1:length(data.zd)];
 end 
-jok_dn = cumprod(size(find(~isnan(l.w(ind,:)))));
-j_dn = cumprod(size(find(isnan(l.e(ind,:)) & ~isnan(l.w(ind,:)))));
+jok_dn = cumprod(size(find(~isnan(data.w(ind,:)))));
+j_dn = cumprod(size(find(isnan(data.e(ind,:)) & ~isnan(data.w(ind,:)))));
 if j_dn/jok_dn > 0.2
   warn=(['>   Detected  ',int2str(j_dn*100/jok_dn),' %  3 BEAM solutions down-looking']);
   disp(warn)
@@ -793,67 +869,71 @@ end
 %
 % apply error velocity threshold
 %
-j = find(abs(l.e) > elim);
+data.raw_u = data.u;
+data.raw_v = data.v;
+data.raw_w = data.w;
+data.raw_e = data.e;
+j = find(abs(data.e) > elim);
 disp(['    Removed ',int2str(length(j)),...
 	' values because of high error velocity'])
-l.u(j) = NaN;
-l.v(j) = NaN;
-l.w(j) = NaN;
-j = find(abs(l.eb) > elim);
+data.u(j) = NaN;
+data.v(j) = NaN;
+data.w(j) = NaN;
+j = find(abs(data.eb) > elim);
 disp(['    Removed ',int2str(length(j)),...
 	' bottom values because of high error velocity'])
-l.ub(j) = NaN;
-l.vb(j) = NaN;
-l.wb(j) = NaN;
+data.ub(j) = NaN;
+data.vb(j) = NaN;
+data.wb(j) = NaN;
 
 
 %
 % save all bottom track data together and remove bad data
 %
-l.bvel = [l.ub',l.vb',l.wb',l.eb'];
-ind = find(l.bvel<-30);
-l.bvel(ind) = NaN;
-params.btrk_used = l.btrk_used;
-if isfield(l,'hs')==1
-  l.hsurf = l.hs;
+data.bvel = [data.ub',data.vb',data.wb',data.eb'];
+ind = find(data.bvel<-30);
+data.bvel(ind) = NaN;
+params.btrk_used = data.btrk_used;
+if isfield(data,'hs')==1
+  data.hsurf = data.hs;
 end
 
 
 %
 % stuff to make output look like Martin's d structure
 %
-l.rw = l.w;
-l.re = l.e;
-l.temp = l.t;
-l.weight = l.cm;
-l.weight = l.weight./nmedian(nmax(l.weight));
-l.tilt = real(asin(sqrt(sind(l.pit(1,:)).^2 + sind(l.rol(1,:)).^2)))/pi*180;
-rold = mean(abs(diff([0,l.rol(1,:);l.rol(1,:),0]'))');
-pitd = mean(abs(diff([0,l.pit(1,:);l.pit(1,:),0]'))');
-l.tiltd = sqrt(rold.^2+pitd.^2);
-l.hbot = l.hb;
-l.hbot4 = l.hb4;
-l.izd = [1:length(l.zd)];
-params.bins_d = l.izd;
+data.rw = data.w;
+data.re = data.e;
+data.temp = data.t;
+data.weight = data.cm;
+data.weight = data.weight./nmedian(nmax(data.weight));
+data.tilt = real(asin(sqrt(sin_d(data.pit(1,:)).^2 + sin_d(data.rol(1,:)).^2)))/pi*180;
+rold = mean(abs(diff([0,data.rol(1,:);data.rol(1,:),0]'))');
+pitd = mean(abs(diff([0,data.pit(1,:);data.pit(1,:),0]'))');
+data.tiltd = sqrt(rold.^2+pitd.^2);
+data.hbot = data.hb;
+data.hbot4 = data.hb4;
+data.izd = [1:length(data.zd)];
+params.bins_d = data.izd;
 if values.up==1
-  l.izu = fliplr([1:length(l.zu)]);
-  params.bins_u = [l.izu,l.izd*0];
-  params.bins_d = [l.izu*0,l.izd];
-  l.izd = l.izd + length(l.izu);
+  data.izu = fliplr([1:length(data.zu)]);
+  params.bins_u = [data.izu,data.izd*0];
+  params.bins_d = [data.izu*0,data.izd];
+  data.izd = data.izd + length(data.izu);
   params.all_trusted_i = findany(params.bins_u+params.bins_d,params.trusted_i);
 else
-  l.izu = [];
-  l.zu = [];
-  params.bins_d = [l.izd];
+  data.izu = [];
+  data.zu = [];
+  params.bins_d = [data.izd];
   params.all_trusted_i = findany(params.bins_d,params.trusted_i);
 end
-l.soundc = 0;
-l.ru = l.u;
-l.rv = l.v;
-for j=1:size(l.xmv,1)
-  values.xmc(j) = meanmediannan(l.xmc(j,:),size(l.xmc,2)/4);
-  values.xmv(j) = meanmediannan(l.xmv(j,:),size(l.xmv,2)/4);
-  values.tint(j) = meanmediannan(l.tint(j,:),size(l.tint,2)/4);
+data.soundc = 0;
+data.ru = data.u;
+data.rv = data.v;
+for j=1:size(data.xmv,1)
+  values.xmc(j) = meanmediannan(data.xmc(j,:),size(data.xmc,2)/4);
+  values.xmv(j) = meanmediannan(data.xmv(j,:),size(data.xmv,2)/4);
+  values.tint(j) = meanmediannan(data.tint(j,:),size(data.tint,2)/4);
 end
 
 
@@ -861,35 +941,33 @@ end
 % don't know what this is
 % n_iz
 %
-n_iz = min([length(l.izd),6]);
-sw = nstd(l.w(l.izd(2:n_iz),:));
-ii = find(sw>0); 
+n_iz = min([length(data.izd),6]);
+sw = nstd(data.w(data.izd(2:n_iz),:));
+ii = (sw>0);   % removed a find GK, 20.05.2011
 sw = nmedian(sw(ii));
-l.down.Single_Ping_Err = sw/tan(l.down.Beam_angle*pi/180)*...
-                       sqrt(l.down.Pings_per_Ensemble);
-values.down_beam_angle = l.down.Beam_angle;
-values.nping_total = l.npng_d*l.nens_d;
+data.down.Single_Ping_Err = sw/tan(data.down.Beam_angle*pi/180)*...
+                       sqrt(data.down.Pings_per_Ensemble);
+values.down_beam_angle = data.down.Beam_angle;
+values.nping_total = data.npng_d*data.nens_d;
 if values.up==1
-  n_iz = min([length(l.izu),6]);
-  sw = nstd(l.w(l.izu(2:n_iz),:));
-  ii = find(sw>0); 
+  n_iz = min([length(data.izu),6]);
+  sw = nstd(data.w(data.izu(2:n_iz),:));
+  ii = (sw>0);   % removed a find GK, 20.05.2011
   sw = nmedian(sw(ii));
-  l.up.Single_Ping_Err = sw/tan(l.up.Beam_angle*pi/180)*...
-                       sqrt(l.up.Pings_per_Ensemble);
-  values.up_beam_angle = l.up.Beam_angle;
-  values.nping_total(2) = l.npng_u*l.nens_u;
+  data.up.Single_Ping_Err = sw/tan(data.up.Beam_angle*pi/180)*...
+                       sqrt(data.up.Pings_per_Ensemble);
+  values.up_beam_angle = data.up.Beam_angle;
+  values.nping_total(2) = data.npng_u*data.nens_u;
 end
-ii = isfinite(l.tim(1,:));
-l = cutstruct(l,ii);
+ii = isfinite(data.tim(1,:));
+data = cutstruct(data,ii);
 
 
 %
 % check time for NB, which stores only day of year not year
 %
-oldtim = l.tim;
-for n=1:size(l.tim,1)
-
-  time_greg = gregoria(l.tim(n,:));
+for n=1:size(data.tim,1)
+  time_greg = gregoria(data.tim(n,:));
   if time_greg(1)==1900
     if isfield(params,'correct_year')
       time_greg(:,1) = params.correct_year;
@@ -899,7 +977,7 @@ for n=1:size(l.tim,1)
     end
     disp('>   Narrowband : found year 1900, correcting to year of nav-data')
   end
-  l.tim(n,:) = julian(time_greg)';
+  data.tim(n,:) = julian(time_greg)';
 end
 
 
@@ -911,16 +989,16 @@ end
 % the only way to override them is to give 
 % start and end time explicitly in positions.dat
 %
-values.start_time = min(l.tim(1,:));
-values.end_time = max(l.tim(1,:));
+values.start_time = min(data.tim(1,:));
+values.end_time = max(data.tim(1,:));
 
 
 %
 % clear pressure records, if requested
 %
 if params.clear_ladcp_pressure==1
-  l.pres = l.pres*0;
-  l.presstd = l.presstd*0;
+  data.pres = data.pres*0;
+  data.presstd = data.presstd*0;
 end
 
 
@@ -945,17 +1023,6 @@ fseek(fid,0,'bof');
 %-------------------------------------------------------------------------------
 
 
-function d = y2k(d)
-% fix date string
-if d<80, 
-  d=2000+d; 
-end
-if d<100, 
-  d=1900+d; 
-end
-
-
-%-------------------------------------------------------------------------------
 
 function [vele]=b2earth(velb,v,p)
 % 
@@ -1001,8 +1068,8 @@ p.convex = 1;
 
 % precompute some constants
 d2r=pi/180; % conversion from degrees to radians
-C30=cosd(p.Beam_angle);
-S30=sind(p.Beam_angle);
+C30=cos_d(p.Beam_angle);
+S30=sin_d(p.Beam_angle);
 
 if p.beams_up == 1, % for upward looking
   ZSG = [+1, -1, +1, -1];
@@ -1012,7 +1079,7 @@ end
 
 
 % size of problem
-nb = size(velb,2);
+%nb = size(velb,2);
 ne = size(velb,1);
 
 % disp([' converting ',int2str(ne),' profiles from beam- to earth coordinates'])
@@ -1031,8 +1098,8 @@ for ii=1:ne
   % fixed sensor case
   % make sure everything is expressed in radians for MATLAB
   RR = roll.*d2r;
-  KA = sqrt(1.0 - (sind(pitch).*sind(roll)).^2);
-  PP = asin(sind(pitch).*cosd(roll)./KA);
+  KA = sqrt(1.0 - (sin_d(pitch).*sin_d(roll)).^2);
+  PP = asin(sin_d(pitch).*cos_d(roll)./KA);
   HH = head.*d2r;
 
   % Step 2 - calculate trig functions and scaling factors
@@ -1106,9 +1173,8 @@ for ii=1:ne
   VZS = SSCOR/(4.0*C30);
   VES = VZS;
 
-  [NBINS, n] = size(beam);
+  [NBINS] = size(beam);
   earth = zeros(size(beam));
-  clear n;
   J = zeros(1,4);
 
   for IB=1:NBINS,
@@ -1122,7 +1188,7 @@ for ii=1:ne
     end
 
     % Step 4:  ADCP coordinate velocity components
-    if all(J > 0) & all(J <= NBINS),
+    if all(J > 0) && all(J <= NBINS),
       if any(isnan(beam(IB,:))),
         earth(IB,:)=ones(size(beam(IB,:))).*NaN;
       else

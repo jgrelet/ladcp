@@ -3,11 +3,12 @@ function plotraw(d,params,values)
 %
 % plot some results
 %
-% version 0.2	last change 21.09.2007
+% version 0.3	last change 20.05.2011
 
 % M.Visbeck, G.Krahmann, IFM-GEOMAR
 
-% wrong bins picked looking for broken beam	GK, Sep 2007	0.1-->0.2
+% wrong bins picked looking for broken beam	                   GK, Sep 2007	0.1-->0.2
+% add colors to identify beam performance, more comments       GK, 20.05.2011  0.2-->0.3 
 
 %
 % open and clear figure
@@ -119,6 +120,9 @@ title(' W as function of bindepth and time')
 %
 % subplot showing beam performance (target strength/echo amplitude)
 %
+% definition of the performance value is below in the subroutine checkbeam
+%
+cols = 'brgk';
 if isfield(d,'tsd_m')
   subplot(427)
   plot(d.tsd_m(1:length(d.izd),:),-d.zd)
@@ -141,13 +145,19 @@ if isfield(d,'tsd_m')
   end
   axis(ax)
   ylabel('distance [m]')
-  xlabel('echo amplitude [dB]')
-  title('Beam Performance')
+  xlabel('median echo amplitude [dB]')
+  title('Beam Performance (S2N / best beam S2N)')
 end
 
 
 %
 % subplot showing range and correlation
+%
+%
+% range is derived in rdiload.m
+% and defined as the distance at which the correlation has dropped off to
+% less than 30% of the highest correlation of the first bin (of all 4
+% beams)
 %
 if isfield(d,'cmd_m')
   subplot(428)
@@ -168,27 +178,37 @@ if isfield(d,'cmd_m')
     ax = axis;
     for n=1:4
       text((0.12*n+0.27)*ax(2),ax(4),int2str(params.up_range(n)),...
-	'VerticalAlignment','top')
+        'VerticalAlignment','top','color',cols(n))
     end
     if ~isnan(params.up_sn)
         text(0.01*ax(2),ax(4),['#',int2str(params.up_sn),...
-            ' range:'],'VerticalAlignment','top')
+          ' range:'],'VerticalAlignment','top')
+    elseif ~isnan(values.inst_serial(2))
+        text(0.01*ax(2),ax(4),['#',int2str(values.inst_serial(2)),...
+          ' range:'],'VerticalAlignment','top')
+    else
+        text(0.01*ax(2),ax(4),['range:'],'VerticalAlignment','top')
     end
   end
   ax(1) = -13; 
 
   for n=1:4
     text((0.12*n+0.27)*ax(2),ax(3),int2str(params.dn_range(n)),...
-	'VerticalAlignment','bottom')
+      'VerticalAlignment','bottom','color',cols(n))
   end
   if ~isnan(params.down_sn)
       text(0.01*ax(2),ax(3),['#',int2str(params.down_sn),...
-         ' range:'],'VerticalAlignment','bottom')
+        ' range:'],'VerticalAlignment','bottom')
+  elseif ~isnan(values.inst_serial(1))
+      text(0.01*ax(2),ax(3),['#',int2str(values.inst_serial(1)),...
+        ' range:'],'VerticalAlignment','bottom')
+  else
+      text(0.01*ax(2),ax(3),['range:'],'VerticalAlignment','bottom')
   end
   axis(ax)
   ylabel('distance [m]')
-  xlabel('correlation ')
-  title('Range of good data')
+  xlabel('median correlation [ADCP units]')
+  title('Range of good data (>30% of peak corr)')
   
 end
 
@@ -268,6 +288,15 @@ hgsave('tmp/2')
 %=============================================
 function checkbeam(t,ax,do)
 % check beam performance
+%
+% it looks like 
+%
+% - calculate the noise level as meanmedian of the distant half of the echo
+%   amplitude data
+% - compare that with the echo amplitude of the first two bins
+%   and call the ratio 'signal to noise ratio'
+% - call all beams broken/bad/weak that are less than 0.5/0.65/0.8 of the
+%   best beam
 bl = size(t,1);			% this seems to have been a bug
 				% the 1 was a 2 and thus picked
 				% the wrong dimension
@@ -296,9 +325,10 @@ end
 ifail = s2n<max(s2n)*0.5;
 ibad = ~ifail & s2n<max(s2n)*0.65;
 iweak = ~ifail & ~ibad & s2n<max(s2n)*0.8;
+cols = 'brgk';
 for i=1:4;
   text(ax(1)+0.2*i*diff(ax(1:2)),tay,[int2str(s2n(i)./max(s2n)*100),'%'],...
- 	'VerticalAlignment',tflag)
+ 	'VerticalAlignment',tflag,'color',cols(i))
 end
 
 if sum(ifail)>0

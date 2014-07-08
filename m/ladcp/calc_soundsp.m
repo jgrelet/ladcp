@@ -5,13 +5,14 @@ function [data,params,values,messages]=calc_soundsp(data,params,values,messages)
 % Calculate the sound speed profile from the best available source
 % and correct the ADCP velocity data for it
 %
-% version 0.2	last change 02.06.2007
+% version 0.3	last change 07.03.2012
 
 % Matin Visbeck 
 %  December 2002, LDEO
 % G.Krahmann, IFM-GEOMAR, Jul 2005
 
 % wrong sign in handling CTD-Prof	GK Jun 2007	0.1->0.2
+% sc had wrong points set compared with data.rX   GK, 07.03.2012  0.2-->0.3
 
 
 %
@@ -59,6 +60,7 @@ disp('    Correcting all ADCP velocities for sound speed ')
 sc = meshgrid(data.ss./data.sv(1,:),data.izd);
 if values.up==1
   sc = [sc;meshgrid(data.ss./data.sv(2,:),data.izu)];
+  sc = flipud(sc);
 end
 data.ru = data.ru.*sc;
 data.rv = data.rv.*sc;

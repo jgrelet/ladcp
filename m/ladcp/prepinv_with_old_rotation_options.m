@@ -5,7 +5,7 @@ function [p,d,messages]=prepinv(messages,d,p,dr,values)
 %
 % - average velocities within depth range
 %
-% version 0.5	last change 06.06.2011
+% version 0.3	last change 28.05.2011
 
 % 
 %  Martin Visbeck, LDEO, 6/10/99
@@ -13,8 +13,6 @@ function [p,d,messages]=prepinv(messages,d,p,dr,values)
 
 % fix problem with trusted_i > # of bins	GK, Sep 2007	0.1-->0.2
 % bug in tilt_weight application          GK, 28.05.2011  0.2-->0.3
-% rotation code cleanup                   GK, 29.05.2011  0.3-->0.4
-% p.down_up_weight_factors                GK, 06.06.2011  0.4-->0.5
 
 
 %
@@ -32,8 +30,8 @@ if isfinite(p.zbottom)
   ind = find(abs(d.z+p.zbottom)>max(p.btrk_range) & isfinite(d.bvel(:,1)') );
   if length(ind)>0
     disp(['    Discarded ',int2str(length(ind)),...
-      ' bottom tracks velocities because of height above bottom > ',...
-      int2str(max(p.btrk_range))])
+	' bottom tracks velocities because of height above bottom > ',...
+	int2str(max(p.btrk_range))])
     d.bvel(ind,:) = NaN;
     d.bvels(ind,:) = NaN;
   end
@@ -41,8 +39,8 @@ if isfinite(p.zbottom)
   ind = find(abs(d.z+p.zbottom)<min(p.btrk_range) & isfinite(d.bvel(:,1)') );
   if length(ind)>0
     disp(['    Discarded ',int2str(length(ind)),...
-      ' bottom tracks velocities because of height above bottom < ',...
-      int2str(min(p.btrk_range))])
+	' bottom tracks velocities because of height above bottom < ',...
+	int2str(min(p.btrk_range))])
     d.bvel(ind,:) = NaN;
     d.bvels(ind,:) = NaN;
   end
@@ -67,7 +65,7 @@ end
 %
 if p.tilt_weight>0 & ~isfield(d,'tilt_weight')
   disp(['    Reducing weights for tilts larger than ',...
-    num2str(p.tilt_weight),' degree'])
+      num2str(p.tilt_weight),' degree'])
   fac = 1.-tanh(d.tilt/p.tilt_weight)/2;
   oldweight = d.weight;
 %  d.weight = d.weight.*meshgrid(fac,d.weight(:,1));  <-- this appears
@@ -77,15 +75,17 @@ if p.tilt_weight>0 & ~isfield(d,'tilt_weight')
 end
 
 
+if 1
+%%%%%%%%%%%%%%%%%%%% rotation
 
 % prepare for heading averaging
+u1d = exp(-sqrt(-1)*(d.hdg(1,:))*pi/180); 
 if values.up==1
 
-  hdg_down = exp(-sqrt(-1)*(d.hdg(1,:))*pi/180); 
-  hdg_up = exp(-sqrt(-1)*(d.hdg(2,:))*pi/180); 
+  u1u = exp(-sqrt(-1)*(d.hdg(2,:))*pi/180); 
 
   % get mean heading offset from COMPASS comparison
-  hdg_offset = compoff(hdg_down,hdg_up);
+  hdg_offset = compoff(u1d,u1u);
 
   % hdg_offset=angle(u1d/u1u)*180/pi;
   p.up_dn_comp_off = hdg_offset;
@@ -99,30 +99,28 @@ if values.up==1
   diary on
   disp(['    Mean heading offset based on tilt is ',num2str(hdg_offset2),' deg'])
   p.up_dn_pit_rol_comp_off = hdg_offset2;
-  [d.rol(3,:),d.pit(3,:)] = uvrot(d.rol(2,:),d.pit(2,:),-hdg_offset);
+  [d.rol(3,:),d.pit(3,:)] = uvrot(d.rol(2,:),d.pit(2,:),-hdg_offset2);
   p.up_dn_rol_off = mean(d.rol(1,:)-d.rol(3,:));
   p.up_dn_pit_off = mean(d.pit(1,:)-d.pit(3,:));
 
-  %
   % plot compass and tilt meter differences
-  %
   figure(2)
   clf
   orient tall
 
   % plot compass comparison between up and down instrument
-  diff_hdg = -angle(hdg_down)+angle(hdg_up*exp(sqrt(-1)*hdg_offset*pi/180));
-  ii = find(diff_hdg>pi);
-  diff_hdg(ii) = diff_hdg(ii)-2*pi;
-  ii = find(diff_hdg<-pi);
-  diff_hdg(ii) = diff_hdg(ii)+2*pi;
+  da = -angle(u1d)+angle(u1u*exp(sqrt(-1)*hdg_offset*pi/180));
+  ii = find(da>pi);
+  da(ii) = da(ii)-2*pi;
+  ii = find(da<-pi);
+  da(ii) = da(ii)+2*pi;
   subplot(311)
-  plot(d.hdg(1,:),diff_hdg*180/pi,'.')
+  plot(d.hdg(1,:),da*180/pi,'.')
   ylabel('Heading difference up-down')
   title([' Heading offset : ',num2str(hdg_offset)])
   xlabel('Heading down')
   grid
-  dhmax = sort(abs(diff_hdg*180/pi));
+  dhmax = sort(abs(da*180/pi));
   dhmax = dhmax(fix(end*0.95));
   if dhmax > 15 & ~isfield(d,'hrot')
     warn = ['>   Large up-down compass difference: ',num2str(dhmax)];
@@ -152,6 +150,7 @@ if values.up==1
   grid;
   axis([[-1 1]*tiltmax [-1 1]*5])
 
+%  streamer([p.name,' Figure 6']);
   suplabel([p.name,' Figure 6'],'t');
   hgsave('tmp/6')
 
@@ -159,7 +158,8 @@ if values.up==1
 
 
   % offset upward looking ADCP to downward looking ADCP
-  if (p.offsetup2down~=0 & values.up==1 & ~isempty(dr))
+%  if (p.offsetup2down~=0 & length(d.zd)~=length(d.ru(:,1)) & exist('dr')==1)
+  if (p.offsetup2down~=0 & length(d.zd)~=length(d.ru(:,1)) & ~isempty(dr))
     if p.rotup2down==2
       % will not rotate to match velocities and correct offset
       p.rotup2down = 1;
@@ -181,9 +181,9 @@ if values.up==1
     l.rv(ii) = NaN;
 
     uu = meanmediannan(d.ru(d.izu,:)+sqrt(-1)*d.rv(d.izu,:)...
-              -l.ru(d.izu,:)-sqrt(-1)*l.rv(d.izu,:)+d.weight(d.izu,:)*0,2);
+              -l.ru(d.izu,:)-i*l.rv(d.izu,:)+d.weight(d.izu,:)*0,2);
     ud = meanmediannan(d.ru(d.izd,:)+sqrt(-1)*d.rv(d.izd,:)...
-             -l.ru(d.izd,:)-sqrt(-1)*l.rv(d.izd,:)+d.weight(d.izd,:)*0,2);
+             -l.ru(d.izd,:)-i*l.rv(d.izd,:)+d.weight(d.izd,:)*0,2);
     clear l
 
     ii = find(~isfinite(uu+ud));
@@ -228,7 +228,7 @@ if values.up==1
     ax(3:4) = [-1 1]*max(nmedian(abs(real(uoffav)))*6,0.1);
     axis(ax)
 
-    title('U offset derived from CTD motion [m/s]')
+    title('U offset [m/s]')
     subplot(312)
     plot(imag(d.uoff))
     hold on
@@ -238,7 +238,7 @@ if values.up==1
     ax = axis;
     ax(3:4) = [-1 1]*max(nmedian(abs(imag(uoffav)))*6,0.1);
     axis(ax)
-    title('V offset derived from CTD motion [m/s]')
+    title('V offset [m/s]')
 
     subplot(313)
     plot(d.tilterr)
@@ -262,22 +262,19 @@ if values.up==1
 
   end
 
-  %
-  % rotate upward looking ADCP to downward looking ADCP
-  % here first the average heading offset is applied
-  % and then in a second step the two heading series are merged
-  % and the velocities rotated
-  %
-  if p.rotup2down~=0 & values.up==1
-    diff_hdg = angle(hdg_down)-angle(hdg_up*exp(-sqrt(-1)*hdg_offset*pi/180));
-    ii = find(diff_hdg>pi); 
-    diff_hdg(ii) = diff_hdg(ii)-2*pi; 
-    ii = find(diff_hdg<-pi); 
-    diff_hdg(ii)=diff_hdg(ii)+2*pi;
-    d.diff_hdg = diff_hdg;
+  % check if rotated already
 
-    hdg_up_with_offset = exp(-sqrt(-1)*(d.hdg(2,:)-hdg_offset)*pi/180);
-    hrotcomp = angle(hdg_up_with_offset./hdg_down)*180/pi;
+  % rotate upward looking ADCP to downward looking ADCP
+  if (p.rotup2down~=0 & length(d.zd)~=length(d.ru(:,1)))
+    da = angle(u1d)-angle(u1u*exp(-sqrt(-1)*hdg_offset*pi/180));
+    ii = find(da>pi); 
+    da(ii)=da(ii)-2*pi; 
+    ii=find(da<-pi); 
+    da(ii)=da(ii)+2*pi;
+    d.diff_hdg = da;
+
+    u1uc = exp(-sqrt(-1)*(d.hdg(2,:)-hdg_offset)*pi/180);
+    hrotcomp = angle(u1uc./u1d)*180/pi;
     d.rot_comp = hrotcomp;
 
     % get mean heading offset from velocities
@@ -318,122 +315,101 @@ if values.up==1
     %  try to take speed into account
     hrotvel = angle(uu./ud)*180/pi;
     d.rot_vel = hrotvel;
+  %  keyboard
 
-    %  select method to use to create a single heading 
+    %  decide which to use 
     if p.rotup2down==1
-      hdg_rot_down = -hrotcomp/2;
-      hdg_rot_up = hrotcomp/2;
+      hrot = hrotcomp;
       disp('    Rot up2down is using average up/down compass')
     elseif p.rotup2down==2
-      hdg_rot_down = -hrotvel/2;
-      hdg_rot_up = hrotvel/2;
+      hrot = hrotvel;
       disp('>   Rot up2down is using velocties')
     elseif p.rotup2down==3
-      hdg_rot_down = 0*hrotcomp;
-      hdg_rot_up = hrotcomp;
+      hrot = hrotcomp;
       disp('>   Rot up2down is using down compass only')
     elseif p.rotup2down==4
-      hdg_rot_down = -hrotcomp;
-      hdg_rot_up = 0*hrotcomp;
+      hrot = hrotcomp;
       disp('>   Rot up2down is using up compass only')
     else
-      hdg_rot_down = d.ru(1,:)*0;
-      hdg_rot_up = d.ru(1,:)*0;
+      hrot = d.ru(1,:)*0;
       disp('>   Not sure what you want. Applying no compass rotation at all.')
     end  
 
-    % plot which heading corrections are applied to which instrument
+    % plot what I am about to do
     figure(2)
     clf
     orient tall
-    subplot(2,1,1)
-    plot(hdg_rot_down)
-    title('heading-merger correction applied to down-looking instrument')
-    ylabel('degrees')
-    xlabel('ensemble')
-    subplot(2,1,2)
-    plot(hdg_rot_up)
-    title('heading-merger correction applied to up-looking instrument')
-    ylabel('degrees')
-    xlabel('ensemble')
-
+    plot([hrotcomp-90;hrotvel-180;hrot]')
+    hold on
+    ax = axis;
+    plot(ax(1:2),[0 0],'-k',ax(1:2),[0 0]-90,'-k',ax(1:2),[0 0]-180,'-k') 
+    text(1,20,'rotation used ')
+    text(1,-60,'rotation compass')
+    text(1,-150,'rotation velocity')
+    ax(3) = -250;
+    axis(ax)
+    ylabel(' heading correction for uplooking')
     streamer([p.name,' Figure 5']);
     hgsave('tmp/5')
 
-    if isfield(d,'hdg_rot_down')
+    if isfield(d,'hrot')
       disp('    Rotated earlier, using only difference ')
-      oldrot_down = d.hdg_rot_down;
-      oldrot_up = d.hdg_rot_up;
+      oldrot = d.hrot;
     else
-      oldrot_down = 0;
-      oldrot_up = 0;
+      oldrot = 0;
     end
 
-    % avoid missing angles
-    if any(isnan(hdg_rot_down))
-      error('empty rotation')
+    % apply rotation
+    hrotm = meshgrid(hrot-oldrot,d.izd);
+    % dont rotate NaNs
+    ii = find(~isfinite(hrotm));
+    hrotm(ii) = nmean(hrot-oldrot);
+    % rotate both by half difference
+    if p.rotup2down==4
+      [ru,rv] = uvrot(d.ru(d.izd,:),d.rv(d.izd,:),-hrotm);
+      d.ru(d.izd,:) = ru;
+      d.rv(d.izd,:) = rv;
+      [bu,bv] = uvrot(d.bvel(:,1),d.bvel(:,2),-(hrot-oldrot)');
+      d.bvel(:,1) = bu;
+      d.bvel(:,2) = bv;
+    elseif p.rotup2down~=3
+      [ru,rv] = uvrot(d.ru(d.izd,:),d.rv(d.izd,:),-hrotm/2);
+      d.ru(d.izd,:) = ru;
+      d.rv(d.izd,:) = rv;
+      [bu,bv] = uvrot(d.bvel(:,1),d.bvel(:,2),-(hrot-oldrot)'/2);
+      d.bvel(:,1) = bu;
+      d.bvel(:,2) = bv;
     end
-    
-    % finally apply the heading-merger correction    
-    [ru,rv] = uvrot(d.ru(d.izd,:),d.rv(d.izd,:),hdg_rot_down-oldrot_down);
-    d.ru(d.izd,:) = ru;
-    d.rv(d.izd,:) = rv;
-    [bu,bv] = uvrot(d.bvel(:,1),d.bvel(:,2),hdg_rot_down'-oldrot_down');
-    d.bvel(:,1) = bu;
-    d.bvel(:,2) = bv;
-    [ru,rv] = uvrot(d.ru(d.izu,:),d.rv(d.izu,:),hdg_rot_up-oldrot_up);
-    d.ru(d.izu,:) = ru;
-    d.rv(d.izu,:) = rv;
 
-    % and store the applied heading-merger correction
-    % for the next round of prepinv
-    d.hdg_rot_down = hdg_rot_down;
-    d.hdg_rot_up = hdg_rot_up;
+    hrotm = meshgrid(hrot-oldrot,d.izu);
+    figure(4)
+    clf
+    subplot(2,1,1)
+    plot(hrot)
+    subplot(2,1,2)
+    plot(oldrot)
+    % dont rotate NaNs
+    ii = find(~isfinite(hrotm));
+    hrotm(ii) = nmean(hrot);
+    % rotate both by half difference
+    if p.rotup2down==4
+      [ru,rv] = uvrot(d.ru(d.izu,:),d.rv(d.izu,:),hrotm);
+      d.ru(d.izu,:) = ru;
+      d.rv(d.izu,:) = rv;
+    elseif p.rotup2down~=3
+      [ru,rv] = uvrot(d.ru(d.izu,:),d.rv(d.izu,:),hrotm/2);
+      figure(5)
+      plot(hrotm(1,:)/2)
+      d.ru(d.izu,:) = ru;
+      d.rv(d.izu,:) = rv;
+    end
+
+    d.hrot = hrot;
 
   end
 end
-
-
-%
-% general weight factor for up/down-looker
-%
-if any(p.down_up_weight_factors~=1)
-  if values.up==1
-    d.weight(d.izu,:) = d.weight(d.izu,:) * p.down_up_weight_factors(2);
-  end
-  d.weight(d.izd,:) = d.weight(d.izd,:) * p.down_up_weight_factors(1);
 end
-
-
-% plot weights
-bin_no = [0];
-if length(d.zu) > 0 
-  bin_no = [-length(d.zu):1 bin_no]; 
-end
-if length(d.zd) > 0 
-  bin_no = [bin_no 1:length(d.zd)]; 
-end
-figure(2)
-clf
-orient tall;
-colormap([[1 1 1]; jet(128)]);
-
-subplot(3,1,1);
-imagesc([1:size(d.ts,2)],bin_no,...
-	[d.weight(1:length(d.zu),:); ...
-	 ones(1,size(d.ts,2))*NaN; ...
-	 d.weight(size(d.ts,1)-length(d.zd)+1:end,:)...
-        ]);
-csc = caxis;
-colorbar
-xlabel('Ensemble #');
-ylabel('Bin #');
-title('Weights based on various parameters');
-
-streamer([p.name,' Figure 16']);
-hgsave('tmp/16')
-
-
+%%%%%%%%%%%% rotation
 
 %--------------------------------------------------
 function  hdg_offset = compoff(u1,u2)

@@ -3,12 +3,15 @@ function plot_result(dr,d,p,ps,values)
 %                              
 % - plot final velocity profile
 %
-% version 0.2	last change 19.09 2007
+% version 0.6	last change 13.07.2012
 
 % Martin Visbeck and Gerd Krahmann, LDEO, April-2000
-%
-% TS axis bug fix, minor stuff		GK, Sep 2007	0.1-->0.2
-% Bottom track axis,                MV, Jul 2008    0.7-->0.8
+
+% TS axis bug fix, minor stuff            GK, Sep 2007    0.1-->0.2
+% Bottom track axis,                      MV, Jul 2008    0.2-->0.3
+% replaced finite with isfinite           GK, 08.11.2009  0.3-->0.4
+% variable btrk plot range                GK, 12.05.2011  0.4-->0.5
+% display instrument serial number        GK, 13.07.2012  0.5-->0.6
 
 if isfield(dr,'range_do');
   zpmax = values.maxdepth + nmax([0;dr.range_do]);
@@ -17,7 +20,7 @@ else
 end
 
 if isfield(p,'zbottom')
-  if finite(p.zbottom)
+  if isfinite(p.zbottom)
     zpmax = p.zbottom;
   end
 end
@@ -66,6 +69,9 @@ if isfield(dr,'u_do')
   plot((dr.u_do(iz)+dr.ubar)*100,-z(iz),'.b','markersize',6)
   plot((dr.v_do(iz)+dr.vbar)*100,-z(iz),'.b','markersize',6)
   ct = [ct,'; blue dots down cast'];
+  if nstd(dr.u_do)+nstd(dr.v_do)==0
+    keyboard
+  end
 end
 if isfield(dr,'u_shear_method')
   plot((dr.u_shear_method+dr.ubar)*100,-dr.z,'-r','linewidth',0.9)
@@ -118,7 +124,7 @@ if (p.btrk_used>0 & isfield(dr,'zbot') )
   set(gca,'XTickLabel',[]);
   zbprofr=-dr.zbot+p.zbottom;
   axes('position',[0.1 0.1 0.4 0.12])
-  iz = find(zbprofr>10 & zbprofr <250);
+  iz = find(zbprofr>10 & zbprofr <p.btrk_plot_range);
   plot(dr.ubot(iz)*100,zbprofr(iz),'r-','linewidth',2.5)
   grid
   hold on
@@ -129,10 +135,10 @@ if (p.btrk_used>0 & isfield(dr,'zbot') )
     plot([dr.vbot(iz)+dr.uerrbot(iz)]*100,zbprofr(iz),':g','linewidth',1.8)
     plot([dr.vbot(iz)-dr.uerrbot(iz)]*100,zbprofr(iz),':g','linewidth',1.8)
   end
-  plot([0 0],[0 -nmax(-[250, p.zbottom])],'-k')
+  plot([0 0],[0 -nmax(-[p.btrk_plot_range, p.zbottom])],'-k')
   xlabel('velocity [cm/s]')
   ylabel('above bottom [m]')
-  ax2 = [p.plot_range(1:2) 0 min([250, p.zbottom])];
+  ax2 = [p.plot_range(1:2) 0 min([p.btrk_plot_range, p.zbottom])];
   axis(ax2);
   if p.btrk_used>1 
     text(0.9*ax2(1),ax2(4)*0.92,'post processed bottom track')
@@ -186,6 +192,19 @@ if length(d)>0
   end
   text(ix,iy,['binsize do: ',num2str(diff(d.zd([1,2]))),...
 	' m  binsize up:  ', num2str(diff(zu([1,2]))),' m'])
+end
+
+if isfield(values,'inst_serial')
+  if length(values.inst_serial)==1
+    tstr = ['S/N down : ',int2str(values.inst_serial)];
+  elseif length(values.inst_serial)==2
+    tstr = ['S/N down : ',int2str(values.inst_serial(1)),...
+        '     S/N up : ',int2str(values.inst_serial(2))];
+  else
+    tstr = '';
+  end
+  iy = iy-idy;
+  text(ix,iy,tstr);
 end
 
 idy = 1/10;
@@ -242,7 +261,7 @@ plot(dr.ts,-dr.z/1000,'b-','linewidth',1.5)
 hold on
 plot(dr.ts_out,(-max(d.zd)-dr.z)/1000,'k-')
 axi = axis;
-if finite(nmax(dr.ts))
+if isfinite(nmax(dr.ts))
   ax(1) = -0.9*nmax(-dr.ts_out); 
   ax(2) = nmax(dr.ts)*1.1; 
 end
@@ -269,7 +288,7 @@ if isfield(dr,'range_up')
   iz = round(linspace(2,length(dr.z)-2,10));
   plot(dr.range_do(iz),-dr.z(iz)/1000,'.b')
 end
-if finite(nmax(sum(dr.range,2)))
+if isfinite(nmax(sum(dr.range,2)))
   ax(1)=0; 
   ax(2)=1.1*nmax(sum(dr.range,2)); 
 end

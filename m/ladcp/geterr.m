@@ -5,6 +5,10 @@ function l = geterr(dr,d,p,iplot)
 % U_ctd on the raw data grid
 % 
 % CTD velocity
+%
+% version 0.2  last change 08.11.2009
+
+% replaced finite with isfinite                                   GK, 08.11.2009    -->0.2
 
 
 if nargin<4
@@ -77,7 +81,7 @@ iz = -(d.izm/dz);			% iz is d.izm with depth coordinate given
 
 					% d.ru contains super-ensemble velocities
 					% dr.z contains output depth grid
-ii = find(finite(d.ru) & iz>0 & iz<max(dr.z)/dz);
+ii = find(isfinite(d.ru) & iz>0 & iz<max(dr.z)/dz);
 					% ii contains indices (valid for d.ru,
 					% d.izm, iz, ...) with valid velocities,
 					% inside the output depth grid
@@ -170,7 +174,7 @@ if iplot
 
   figure(2)
   clf
-  orient landscape
+  orient tall
   colormap([[1 1 1]; jet(128)])
 
   subplot(231)

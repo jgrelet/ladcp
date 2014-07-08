@@ -1,15 +1,15 @@
 function create_cruise()
 %
-% LADCP processing software 10.0
+% LADCP processing software 10.12
 %
 % create a directory structure for a new cruise
 %
-% version 0.2   last change 4.12.2006
+% version 0.3   last change 20.05.2011
 
 % G.Krahmann, Jul 2005
 
-% windows incompatibility       Dec 2006 0.1->0.2
-
+% windows incompatibility                                Dec 2006 0.1-->0.2
+% removing recommendation for 4 digits            GK, 20.05.2011  0.2-->0.3
 
 % check whether we are at the right place
 if ~exist('m/ladcp') | ~exist('m/sw') | ~exist('m/initial_dir')
@@ -25,7 +25,7 @@ while ok==0
   disp('This script will create a new directory with an')
   disp('identifier as name. All processing will take place')
   disp('within this directory and its subdirectories.')
-  disp('It should not be longer than 4 characters')
+  disp('Result file names will use [cruise_id,''_''] ')
   cruise_id = input('Please enter the new cruise identifier! ','s');
   if ~exist(cruise_id)
     ok = 1;

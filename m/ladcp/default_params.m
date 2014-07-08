@@ -9,35 +9,65 @@
 % structure p.??? contains parameter relevant to reading and preparing
 %             the data
 % structure ps.??? contains parameter for the solution
+%
+% version 0.4  last change 07.03.2012
 
-params.software = 'IFM-GEOMAR LADCP software: Version 10.8: 07 February 2009 ';
+% changed handling of cruise_id              GK, 20.05.2011  0.1-->0.2
+% new parameter to fully remove bins         GK, 29.08.2011  0.2-->0.3
+% new parameter to force resampling          GK, 07.03.2012  0.3-->0.4
 
+params.software = 'GEOMAR LADCP software: Version 10.14: 2012-07-13';
+
+
+%
+% unix computers know this
+%
 params.whoami = whoami;
-params.name = ' ';
+
+
+%
+% extract cruise id from upper directory name
+%
+pd = pwd;
+params.name = 'unknown_cruise_id';
+if exist('logs')==7
+  if ispc
+    ind = findstr(pd,'\');
+  else
+    ind = findstr(pd,'/');
+  end
+  if ~isempty(ind)
+    params.name = pd(ind(end)+1:end);
+  else
+    params.name = pd;
+  end
+  params.name = [params.name,'_',int2str0(stn,3)];
+end
+
 
 % directory names
-logs_dir        = 'logs';
-plots_dir       = 'plots';
-prof_dir        = 'profiles';
-raw_dir         = 'data/raw_ladcp';
-ctd_ts_dir      = 'data/ctdtime';
-ctd_prof_dir    = 'data/ctdprof';
-nav_dir         = 'data/nav';
-sadcp_dir       = 'data/sadcp';
+f.logs_dir        = 'logs';
+f.plots_dir       = 'plots';
+f.prof_dir        = 'profiles';
+f.raw_dir         = 'data/raw_ladcp';
+f.ctd_ts_dir      = 'data/ctdtime';
+f.ctd_prof_dir    = 'data/ctdprof';
+f.nav_dir         = 'data/nav';
+f.sadcp_dir       = 'data/sadcp';
 
 % file names
 stn_fmt         = '%03d';
 dn_file_fmt     = '%03dDN000.000';
 up_file_fmt     = '%03dUP000.000';
-f.ladcpdo = sprintf([raw_dir '/' stn_fmt '/' dn_file_fmt],stn,stn);
+f.ladcpdo = sprintf([f.raw_dir '/' stn_fmt '/' dn_file_fmt],stn,stn);
 if (~exist(f.ladcpdo,'file')) 
   dn_file_fmt     = '%03ddn000.000';
-  f.ladcpdo = sprintf([raw_dir '/' stn_fmt '/' dn_file_fmt],stn,stn);
+  f.ladcpdo = sprintf([f.raw_dir '/' stn_fmt '/' dn_file_fmt],stn,stn);
 end;
-f.ladcpup = sprintf([raw_dir '/' stn_fmt '/' up_file_fmt],stn,stn);
+f.ladcpup = sprintf([f.raw_dir '/' stn_fmt '/' up_file_fmt],stn,stn);
 if (~exist(f.ladcpup,'file')) 
   up_file_fmt     = '%03dup000.000';
-  f.ladcpup = sprintf([raw_dir '/' stn_fmt '/' up_file_fmt],stn,stn);
+  f.ladcpup = sprintf([f.raw_dir '/' stn_fmt '/' up_file_fmt],stn,stn);
 end;
 if ~isfield(f,'ladcpup') 
   f.ladcpup = ''; 
@@ -67,10 +97,6 @@ while exist(f.ladcpup(end,:),'file')
   end
 end
 
-f.res = sprintf([prof_dir '/' stn_fmt],stn);
-f.prof = sprintf([prof_dir '/' stn_fmt],stn);
-f.plots = sprintf([plots_dir '/' stn_fmt],stn);
-f.log = sprintf([logs_dir '/' stn_fmt],stn);
 f.nav = ['data/nav/nav',int2str0(stn,3),'.mat'];
 f.ctdprof = ['data/ctdprof/ctdprof',int2str0(stn,3),'.mat'];
 f.ctdtime = ['data/ctdtime/ctdtime',int2str0(stn,3),'.mat'];
@@ -284,11 +310,11 @@ params.up2down = 1;
 % how to best adjust compass to best match 
 % if 1 rotate up-looking and down-looking instrument to mean heading
 %    2 rotate up-looking and down-looking velocities to match up velocities
-%        (not really recommended)
+%        (not really recommended and very likey buggy !!!)
 %    3 rotate up-looking velocities to down heading
-%        (use if suspect the up heading is bad
+%        (use if you suspect that the up heading is bad)
 %    4 rotate down-looking velocities to up heading
-%        (use if suspect the down heading is bad
+%        (use if you suspect that the down heading is bad)
 params.rotup2down = 1;
 
 
@@ -385,6 +411,14 @@ params.tiltmax = [22 4];
 %
 % TILT  reduce weight for large tilts
 % calculated after an obscure formula in prepinv.m GK
+% have a look at
+% plot([0:0.1:30],1.-tanh([0:0.1:30]/params.tilt_weight)/2)
+% to see the effect
+% 10 means a weight of 1.0 for tilts of  0 deg
+%          a weight of 0.6 for tilts of 10 deg
+%          a weight of 0.5 for tilts of 30 deg
+%
+% a tilt_weight of 20 appears to be more gentle, GK
 %
 params.tilt_weight = 10;
 
@@ -409,6 +443,24 @@ params.timoff = 0;
 % be necessary
 %
 params.maxlag = 20;
+
+
+%
+% there is still an old slower up/down lag routine implemented
+% it is turnned off by default and the newer one is used
+%
+% it will automatically turn on, if the bestlag found has a correlation
+% of less than 0.9
+%
+params.bestlag_testing_on = 0;
+
+
+%
+% in case the instruments do not ping in sync but the ping rates differ only by a
+% tiny amount the routine will not automatically resample the uplooker onto the
+% downlooker timing. This can be forced by setting the following parameter to 1.
+%
+params.force_resample_uplooker = 0;
 
 
 % apply tilt correction
@@ -470,8 +522,10 @@ params.savecdf = 1;
 %   11 : Processing Warnings
 %   12 : Inversion Constraints
 %   13 : Bottom Track detail
-
-params.saveplot = [1:14];
+%   14 : Target Strength
+%   15 : Correlation
+%   16 : Weights
+params.saveplot = [1:16];
 
 
 
@@ -606,6 +660,11 @@ params.plot_range = [nan,nan,nan,0];
 
 
 %
+% set the maximum distance for the bottom track velocity plot
+%
+params.btrk_plot_range = 400;
+
+%
 % PARAMETERS FOR EDIT_DATA
 %
 
@@ -614,6 +673,15 @@ params.plot_range = [nan,nan,nan,0];
 %
 params.edit_mask_dn_bins = [];
 params.edit_mask_up_bins = [];
+
+
+%
+% set list of bins to fully remove from data
+% this will be done already at the loading stage and should very rarely be
+% necessary
+%
+params.edit_hardremove_mask_dn_bins = [];
+params.edit_hardremove_mask_up_bins = [];
 
 
 %
@@ -716,22 +784,13 @@ messages.warnp = 'LADCP processing warnings: ';
 params.ladcp_cast = 1;
 params.warnp = [];
 
-if length(f.log) > 1                    % open log file
-  if exist([f.log,'.log'],'file')==2
-    delete([f.log,'.log'])
-  end
-  diary([f.log,'.log'])
-  diary on
-end
-
-
 %
 % serial numbers of instruments
 % this is just used in one plot
 % overwrite them in cruise_params.m
 %
-params.down_sn = 0;
-params.up_sn = 0;
+params.down_sn = nan;
+params.up_sn = nan;
 
 
 %
@@ -740,6 +799,31 @@ params.up_sn = 0;
 % first bin from the uplooking instrument
 % 
 params.dist_up_down = 0;
+
+
+%
+% what is the format of the output plots
+% can be multiple ones, separated by comma
+% e.g.  params.print_formats = 'ps,jpg';
+%
+params.print_formats = 'ps';
+
+
+%
+% another editing parameter
+%
+% discard all values in bins higher than the first one that is below
+% the threshold
+% the two values are for down and up looking instruments
+% if there is only a single value, it will be applied to both
+%
+params.minimum_correlation_threshold = [0,0];
+
+
+%
+% multiply the weight of up and/or down looker by a factor
+%
+params.down_up_weight_factors = [1,1];
 
 
 disp(params.software);                       % show version

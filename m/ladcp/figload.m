@@ -8,16 +8,17 @@ function [] = figload(file,fig);
 % the figure with the handle fig
 % figload is less versatile in that it can only handle a single figure
 %
-% input  :	file		- filename with a figure stored in it
-%		fig	[gcf]	- optional figure handle
+% input  :  file        - filename with a figure stored in it
+%           fig	[gcf]   - optional figure handle
 %
-% version 0.4	last change 15.07.2008
+% version 0.5	last change 31.05.2011
 
 % G.Krahmann, LDEO Oct 2004
 
 % added no displayable output                GK  08.02.2006  0.1- >0.2
 % changed exist commands                     GK	 12.09.2007  0.2-->0.3
 % work-around for newer Matlab versions      GK  15.07.2008  0.3-->0.4
+% adapted to higher version numbers          GK, 31.05.2011  0.4-->0.5
 
 % parse arguments
 if nargin<2
@@ -37,8 +38,10 @@ if exist(file,'file')
   % I am not sure whether the following code works under older versions
   %
   vv = version;
-  vv = str2num(vv(1:3));
-  if vv>7.3
+  ind = findstr(vv,'.');
+  v1 = str2num(vv(1:ind(1)-1));
+  v2 = str2num(vv(ind(1)+1:ind(2)-1));
+  if v1>=7 & v2>3
 
     figure(2)
     clf

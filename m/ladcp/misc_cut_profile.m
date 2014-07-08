@@ -5,17 +5,18 @@ function [data,params,values,messages]=...
 %
 % Cut the raw LADCP data to only the profile part
 %
-% version 0.5	last change 05.03.2008
+% version 0.5	last change 13.07.2012
 
 % Martin Visbeck  December 2002, LDEO
 % G.Krahmann, IFM-GEOMAR, Jul 2005
 
-% flagging only downlooker for 'below bottom'	GK, Sep 2007	0.1-->0.2
+% flagging only downlooker for 'below bottom'          GK, Sep 2007    0.1-->0.2
 % chgd reaction to deep first CTD depth, this happens when 
-% CTD cast was started late by accident		GK, Sep 2007	0.2-->0.3
-% small bug when not reaching bottom		GK, Mar 2008	0.3-->0.4
-% another small bug when not reaching bottom	GK, Mar 2008	0.4-->0.5
-% save indices for detph inversion  MV Jul 2008
+% CTD cast was started late by accident                GK, Sep 2007    0.2-->0.3
+% small bug when not reaching bottom                   GK, Mar 2008    0.3-->0.4
+% another small bug when not reaching bottom	         GK, Mar 2008    0.4-->0.5
+% save indices for depth inversion                     MV Jul 2008
+% renamed cosd and sind to cos_d and sin_d             GK, 13.07.2012  0.5-->0.6
 
 %
 % general function info
@@ -83,7 +84,7 @@ if values.up==1
   ind = find( data.izm > -(data.zu(2)-data.zu(1))/2 );
   data.izmflag(ind) = NaN; 
 end
-  
+
 
 %
 % set weights for these values to NaN too
@@ -209,7 +210,7 @@ params.dt_profile = (values.end_time-values.start_time)*86400;
 dlat = values.end_pos(1) - values.start_pos(1);
 dlon = values.end_pos(2) - values.start_pos(2);
 
-values.xdisp = dlon * cosd(values.lat) * 60.0 * 1852.0;
+values.xdisp = dlon * cos_d(values.lat) * 60.0 * 1852.0;
 values.ydisp = dlat * 60.0 * 1852.0;
 
 values.uship= values.xdisp / params.dt_profile;

@@ -7,22 +7,22 @@ function [data,params,messages,values] = mergedata(data,params,messages,values)
 % This also corrects any time offsets between the different data streams
 % and handles differences between BB and NB data files.
 %
-% input  :	data		- LADCP data structure
-%		params		- LADCP parameter structure
-%		messages	- array of warnings
-%		values		- LADCP values structure
+% input  :  data      - LADCP data structure
+%           params    - LADCP parameter structure
+%           messages  - array of warnings
+%           values    - LADCP values structure
 %
-% output :	data		- modified LADCP data structure
-%		params		- modified LADCP parameter structure
-%		messages	- array of warnings
-%		values		- LADCP values structure
+% output :  data      - modified LADCP data structure
+%           params    - modified LADCP parameter structure
+%           messages  - array of warnings
+%           values    - LADCP values structure
 %
-% version 0.2	last change 25.07.2007
+% version 0.3	last change 20.05.2011
 
 % G.Krahmann, LDEO Nov 2004
 
-% added possibility to use SADCP nav data		GK, Jul 2007	0.1-->0.2
-
+% added possibility to use SADCP nav data     GK, Jul 2007    0.1-->0.2
+% renamed besttlag to calc_adcp_ctd_lag       GK, 20.05.2011  0.2-->0.3
 
 % Merging LADCP data with other data is always tricky since the internal
 % LADCP and the LADCP-startup-computer clocks tend to drift. If there is
@@ -184,7 +184,7 @@ if ~isempty(data.ctdtime_data)
 
   % catch out of range CTD-time data
   if min(data.ctdtime_time)>max(data.time_jul) |...
- 	 max(data.ctdtime_time)<min(data.time_jul)
+    max(data.ctdtime_time)<min(data.time_jul)
 
     disp('>   CTD timeseries does not overlap! WRONG STATION????')
     disp('>     Will use vertical velocity to get depth')
@@ -215,7 +215,7 @@ if ~isempty(data.ctdtime_data)
     % compare to the w of the LADCP
     dtadcp = nmedian( diff(data.time_jul) );
     dtctd = meanmediannan( diff(data.ctdtime_time),...
-	length(data.ctdtime_time)/5 );
+      length(data.ctdtime_time)/5 );
     nshift = max([1,round(dtadcp/dtctd)])+1;
     nshift2 = fix(nshift/2);
 %    disp(['    Using ',int2str(nshift2),' step time base for W_ctd'])
@@ -225,7 +225,7 @@ if ~isempty(data.ctdtime_data)
 
     % calculate W from CTD with LADCP-similar time step
     wctd(i1+nshift2) = -(z(i2)-z(i1))./...
-	((data.ctdtime_time(i2)-data.ctdtime_time(i1))*24*3600);
+      ((data.ctdtime_time(i2)-data.ctdtime_time(i1))*24*3600);
 
     % now we can safely
     % interpolate W onto ADCP time series
@@ -236,8 +236,8 @@ if ~isempty(data.ctdtime_data)
     ctdtime_time = data.ctdtime_time;
     ctdtime_time(1) = 0;
     ctdtime_time(end) = 1e32;
-    data_int = interp1(ctdtime_time,data.ctdtime_data,data.time_jul','nearest');
     warning off
+    data_int = interp1(ctdtime_time,data.ctdtime_data,data.time_jul','nearest');
     data.wctd = interp1(ctdtime_time,wctd,data.time_jul','nearest')';
     warning on
     lat = values.lat*ones(length(data_int(:,1)),1);
@@ -250,7 +250,9 @@ if ~isempty(data.ctdtime_data)
     w = replace(w, sum(isfinite(data.rw))<4, nan);
 
     % check for timelag
-    dtctd = nmedian( diff(data.ctdtime_time) );
+    %    dtctd = nmedian( diff(data.ctdtime_time) )
+    % this one was a bit problematic
+    dtctd = meanmediannan( diff(data.ctdtime_time), fix(length(data.ctdtime_time)/4) );
 
     %
     % make up array to check for lag
@@ -258,18 +260,17 @@ if ~isempty(data.ctdtime_data)
     ctdtw = [data.ctdtime_time, wctd];
     adcptw = [data.time_jul', w'];
 
-    [lag,co] = besttlag(ctdtw,adcptw,params.ctdmaxlag,params.ctdmaxlagnp);
+    [lag,co] = calc_adcp_ctd_lag(ctdtw,adcptw,params.ctdmaxlag,params.ctdmaxlagnp);
     lagdt = -lag*dtctd;
     disp(['    Best W lag at: ',int2str(lag),' CTD scans ~',...
            int2str(lagdt*24*3600),' seconds  corr:',num2str(co)]);
 
-
     %
     % reinterpolate w from the CTD onto the LADCP timing
     %
-    data_int = interp1(data.ctdtime_time-lagdt,data.ctdtime_data,...
-	data.time_jul','linear');
     warning off
+    data_int = interp1(data.ctdtime_time-lagdt,data.ctdtime_data,...
+      data.time_jul','linear');
     data.wctd = interp1(data.ctdtime_time-lagdt,wctd,data.time_jul','nearest')';
     warning on
     data.z = -sw_dpth(data_int(:,1),lat)';

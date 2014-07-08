@@ -1,5 +1,5 @@
-function [di,p,d] = calc_ens_av(d,p,values)
-% function [di,p,d] = calc_ens_av(d,p,values)
+function [di,p,data] = calc_ens_av(data,p,values)
+% function [di,p,data] = calc_ens_av(data,p,values)
 %
 % LADCP-2 processing software version 9+
 %
@@ -9,13 +9,12 @@ function [di,p,d] = calc_ens_av(d,p,values)
 % depth resolution of the artificial ensembles is typically
 % chosen so that no resolution is lost in the final profile
 %
-% version 0.2	last change 05.11.2007
+% version 0.3	last change xx.07.2008
 
 % Martin Visbeck, LDEO, 6/10/99
 % G.Krahmann, IFM-GEOMAR, Jul 2005	partially recoded
-% small typos and other stuff		GK, Nov 2007	0.1->0.2
-% changed way shallow profiles are handled MV Jul 2008 0.7->0.8
-
+% small typos and other stuff               GK, Nov 2007	0.1-->0.2
+% changed way shallow profiles are handled  MV, Jul 2008  0.2-->0.3
 
 
 %
@@ -30,7 +29,7 @@ disp('CALC_ENS_AV: forming Super-Ensembles')
 % else assume p.avdz is the depth interval over which is to average
 %
 if p.avdz<=0
-  p.avdz = nmedian(abs(diff(d.izm(:,1)))) * (-p.avdz);
+  p.avdz = nmedian(abs(diff(data.izm(:,1)))) * (-p.avdz);
 end
 
 
@@ -44,10 +43,10 @@ avpercent = 100;
 % hmm don't know, what this is good for  GK
 %
 if isfield(p,'override_Single_Ping_Err')
-  d.down.Single_Ping_Err = p.override_Single_Ping_Err;
+  data.down.Single_Ping_Err = p.override_Single_Ping_Err;
 end
 p = setdefv(p,'superens_std_min',...
-	d.down.Single_Ping_Err/sqrt(d.down.Pings_per_Ensemble));
+	data.down.Single_Ping_Err/sqrt(data.down.Pings_per_Ensemble));
 
 
 %
@@ -68,32 +67,32 @@ end
 
 if (isnan(p.avdz) | p.avdz<=0 ) & (isnan(p.avens) | p.avens < 2)
   disp('>   avdz=NAN or 0  => No pre-averaging done !!!')
-  di.ru = d.ru;
-  di.rv = d.rv;
-  di.ruvs = d.ru*0+p.superens_std_min;
-  di.rw = d.rw;
-  di.re = d.re;
-  di.ts = d.ts;
-  di.tg = d.tg;
-  di.weight = d.weight;
-  di.bvel = d.bvel';
-  di.hbot = d.hbot;
+  di.ru = data.ru;
+  di.rv = data.rv;
+  di.ruvs = data.ru*0+p.superens_std_min;
+  di.rw = data.rw;
+  di.re = data.re;
+  di.ts = data.ts;
+  di.tg = data.tg;
+  di.weight = data.weight;
+  di.bvel = data.bvel';
+  di.hbot = data.hbot;
   % make up std
-  di.bvels = d.bvel'*0+p.single_ping_accuracy;
-  di.hdg = d.hdg;
-  di.pit = d.pit;
-  di.rol = d.rol;
-  di.temp = d.temp;
-  di.tsd = d.ts(d.izd(2),:);
-  di.tsd_out = d.ts(d.izd(end),:);
-  di.dtiv = d.z*0+1;
-  di.time_jul = d.time_jul;
-  di.z = d.z;
-  di.izm = d.izm;
-  di.slat = d.slat;
-  di.slon = d.slon;
-  di.izd = d.izd;
-  di.izu = d.izu;
+  di.bvels = data.bvel'*0+p.single_ping_accuracy;
+  di.hdg = data.hdg;
+  di.pit = data.pit;
+  di.rol = data.rol;
+  di.temp = data.temp;
+  di.tsd = data.ts(data.izd(2),:);
+  di.tsd_out = data.ts(data.izd(end),:);
+  di.dtiv = data.z*0+1;
+  di.time_jul = data.time_jul;
+  di.z = data.z;
+  di.izm = data.izm;
+  di.slat = data.slat;
+  di.slon = data.slon;
+  di.izd = datat.izd;
+  di.izu = data.izu;
 
 else
   di.izr = p.all_trusted_i;
@@ -101,9 +100,9 @@ else
   % remove reference velocity and then average ensembles
   disp('    Removing reference velocity and average ensembles ')
   ilast = 1;
-  il = length(d.izm);
+  il = length(data.izm);
   im = 0;
-  ibin = [1:size(d.ru,1)];
+  ibin = [1:size(data.ru,1)];
  
   %
   % big loop
@@ -123,7 +122,7 @@ else
     if p.avens>0
       i1 = ilast+[1:p.avens];
     else
-      ii = find(abs(d.izm(1,(ilast+1):il)-d.izm(1,ilast))>p.avdz);
+      ii = find(abs(data.izm(1,(ilast+1):il)-data.izm(1,ilast))>p.avdz);
       if length(ii)<1 
         ii = il-ilast; 
       end
@@ -141,91 +140,91 @@ else
     end
     ilast = max(i1);
 
-    w = d.weight(p.all_trusted_i,i1)*0+1;
-    w2 = d.weight(:,i1)*0+1;
+    w = data.weight(p.all_trusted_i,i1)*0+1;
+    w2 = data.weight(:,i1)*0+1;
 
 
     % U
-    ur = nmedian(d.ru(p.all_trusted_i,i1).*w);
+    ur = nmedian(data.ru(p.all_trusted_i,i1).*w);
     ruav = nmean(ur);
     i3 = find(isnan(ur));
     ur(i3) = i3*0;
     iav = round(length(ur)/200 * avpercent);
     ur = meshgrid(ur,ibin);
-    di.ru(:,im) = meanmediannan([d.ru(:,i1).*w2-ur]',iav)'+ruav;
-    rus = nstd([d.ru(:,i1).*w2]')';
+    di.ru(:,im) = meanmediannan([data.ru(:,i1).*w2-ur]',iav)'+ruav;
+    rus = nstd([data.ru(:,i1).*w2]')';
     % V
-    vr = nmedian(d.rv(p.all_trusted_i,i1).*w);
+    vr = nmedian(data.rv(p.all_trusted_i,i1).*w);
     rvav = nmean(vr);
     i3 = find(isnan(vr));
     vr(i3) = i3*0;
     iav = round(length(vr)/200 * avpercent);
     vr = meshgrid(vr,ibin);
-    di.rv(:,im) = meanmediannan([d.rv(:,i1).*w2-vr]',iav)'+rvav;
+    di.rv(:,im) = meanmediannan([data.rv(:,i1).*w2-vr]',iav)'+rvav;
     % estimate mean STD of U and V
-    di.ruvs(:,im) = sqrt(rus.^2+nstd([d.rv(:,i1).*w2]')'.^2);
+    di.ruvs(:,im) = sqrt(rus.^2+nstd([data.rv(:,i1).*w2]')'.^2);
     % W
-    wr = nmedian(d.rw(p.all_trusted_i,i1).*w);
+    wr = nmedian(data.rw(p.all_trusted_i,i1).*w);
     rwav = nmean(wr);
     i3 = find(isnan(wr));
     wr(i3) = i3*0;
     iav = round(length(wr)/200 * avpercent);
     wr = meshgrid(wr,ibin);
-    di.rw(:,im) = meanmediannan([d.rw(:,i1).*w2-wr]',iav)'+rwav;
+    di.rw(:,im) = meanmediannan([data.rw(:,i1).*w2-wr]',iav)'+rwav;
 
     %EA
-    di.re(:,im) = nmean(d.re(:,i1)')';
+    di.re(:,im) = nmean(data.re(:,i1)')';
 
     %TS
-    di.ts(:,im) = nmean(d.ts(:,i1)')';
-    di.tg(:,im) = nmean(d.tg(:,i1)')';
+    di.ts(:,im) = nmean(data.ts(:,i1)')';
+    di.tg(:,im) = nmean(data.tg(:,i1)')';
 
     % weight
-    di.weight(:,im) = nmean(d.weight(:,i1)')';
+    di.weight(:,im) = nmean(data.weight(:,i1)')';
 
     % bottom track
-    di.bvel(:,im) = nmean(d.bvel(i1,:))';
-    bvel = d.bvel(i1,:);
+    di.bvel(:,im) = nmean(data.bvel(i1,:))';
+    bvel = data.bvel(i1,:);
     %  remove mean vertical velocity from bottom track w prior to STD 
     bvel(:,3) = bvel(:,3)-wr(1,:)';
     di.bvels(:,im) = nstd(bvel)';
     %  distance of bottom
-    di.hbot(im) = nmean(d.hbot(i1));
+    di.hbot(im) = nmean(data.hbot(i1));
 
     % bin depth
-    di.izm(:,im) = mean(d.izm(:,i1)')';
+    di.izm(:,im) = mean(data.izm(:,i1)')';
     
     % heading
-    dummy = exp(-sqrt(-1)*(d.hdg(1,i1))*pi/180);
+    dummy = exp(-sqrt(-1)*(data.hdg(1,i1))*pi/180);
     di.hdg(1,im) = -angle(mean(dummy))*180/pi;
     if values.up==1
-      dummy = exp(-sqrt(-1)*(d.hdg(2,i1))*pi/180);
+      dummy = exp(-sqrt(-1)*(data.hdg(2,i1))*pi/180);
       di.hdg(2,im) = -angle(mean(dummy))*180/pi;
     end
 
     % pitch and roll
-    di.pit(:,im) = mean(d.pit(:,i1),2);
-    di.rol(:,im) = mean(d.rol(:,i1),2);
+    di.pit(:,im) = mean(data.pit(:,i1),2);
+    di.rol(:,im) = mean(data.rol(:,i1),2);
 
     % target strength
-    di.tsd(im) = mean(d.ts(d.izd(2),i1),2);
-    di.tsd_out(im) = mean(d.ts(d.izd(end),i1),2);
+    di.tsd(im) = mean(data.ts(data.izd(2),i1),2);
+    di.tsd_out(im) = mean(data.ts(data.izd(end),i1),2);
 
     % target strength
-    di.temp(im) = mean(d.temp(i1));
+    di.temp(im) = mean(data.temp(i1));
 
     % ships position
-    di.slon(im) = nmedian(d.slon(i1));
-    di.slat(im) = nmedian(d.slat(i1));
+    di.slon(im) = nmedian(data.slon(i1));
+    di.slat(im) = nmedian(data.slat(i1));
 
     % number of ensembles
     di.dtiv(im) = length(i1);
 
     % time
-    di.time_jul(im) = nmean(d.time_jul(i1));
+    di.time_jul(im) = nmean(data.time_jul(i1));
 
     % depth
-    di.z(im) = nmean(d.z(i1));
+    di.z(im) = nmean(data.z(i1));
     % end of big loop
   end
 
@@ -233,8 +232,8 @@ else
   di.hdg = di.hdg+(di.hdg<0)*360;
 
   % remove outlier
-  di.izd = d.izd;
-  di.izu = d.izu;
+  di.izd = data.izd;
+  di.izu = data.izu;
   [di,p] = outlier(di,p,values);
 
   % remove bottom track data with single ping or large wstd
@@ -255,7 +254,7 @@ else
       di.bvel(:,ii) = NaN;
       di.bvels(:,ii) = NaN;
     else
-      ind = find(isfinite(d.bvel(3,:)));
+      ind = find(isfinite(data.bvel(3,:)));
       disp(['    Found no valid bottom track ensemble from ',...
 	int2str(length(ind)),' finite raw bottom tracks '])
     end 
@@ -323,4 +322,31 @@ di.dt = mean([dt([1,1:end]);dt([1:end,end])]);
 %
 % SADCP is already averaged
 %
-di.svel = d.svel;
+di.svel = data.svel;
+
+
+bin_no = [0];
+if length(data.zu) > 0 
+  bin_no = [-length(data.zu):1 bin_no]; 
+end
+if length(data.zd) > 0 
+  bin_no = [bin_no 1:length(data.zd)]; 
+end
+
+figload('tmp/16.fig',2)
+subplot(3,1,2);
+imagesc([1:size(di.ts,2)],bin_no,...
+	[di.weight(1:length(data.zu),:); ...
+	 ones(1,size(di.weight,2))*NaN; ...
+	 di.weight(size(di.weight,1)-length(data.zd)+1:end,:)...
+        ]);
+csc = caxis;
+colorbar
+xlabel('Super Ensemble #');
+ylabel('Bin #');
+title('Weights based on various parameters')
+
+streamer([p.name,' Figure 16']);
+hgsave('tmp/16')
+
+

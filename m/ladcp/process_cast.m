@@ -8,13 +8,14 @@ function [] = process_cast(stn)
 %                               Enter a negative number to clear loaded
 %                               and saved ancillary data for that station.
 %
-% version 0.4	last change 07.02.2009
+% version 0.5	last change 28.05.2011
 
 % G.Krahmann, IFM-GEOMAR
 
 % orient statements for figure saving     GK, 14.07.2008  0.1-->0.2
 % orient gone, several drawnow's          GK, 15.07.2008  0.2-->0.3
 % call clear_prep for negative stn        GK, 07.02.2009  0.3-->0.4
+% variable p.print_formats                GK, 28.05.2011  0.4-->0.5
 
 if exist('logs')~=exist(pwd);
     disp('>   This directory is not prepared for the LADCP software ')
@@ -40,6 +41,7 @@ end
 default_params;
 cruise_params;
 cast_params;
+f = misc_composefilenames(f,p,stn);
 
 
 % 
@@ -127,15 +129,18 @@ drawnow
 %
 % apply some editing of the single bins
 %
-data = edit_data(data,p);
+data = edit_data(data,p,values);
 drawnow
 
 
 %
 % form super ensembles
 %
+data1 = data;
 [p,data,messages] = prepinv(messages,data,p,[],values);
+%[p,data1,messages] = prepinv_with_old_rotation_options(messages,data1,p,[],values);
 [di,p,data] = calc_ens_av(data,p,values);
+%[di1,p,data1] = calc_ens_av(data1,p,values);
 drawnow
 
 
@@ -144,6 +149,7 @@ drawnow
 %
 if ps.outlier>0 | p.offsetup2down>0
   [messages,p,dr,de,der] = lanarrow(messages,values,di,p,ps);
+%  [messages,p,dr1,de1,der1] = lanarrow(messages,values,di1,p,ps);
 end
 
 
@@ -152,6 +158,8 @@ end
 %
 if (p.offsetup2down>0 & length(data.izu)>0)
   [p,data,messages] = prepinv(messages,data,p,dr,values);
+%  [p,data1,messages] = prepinv_with_old_rotation_options(messages,data1,p,dr1,values);
+%  keyboard
   [di,p,data] = calc_ens_av(data,p,values);
 end
 
@@ -249,16 +257,30 @@ if length(f.res)>1
   %
   % save plots
   %
+  % handle newer matlab versions
+if version('-release')>=14
+    imac = 0;
+else
+    imac = ismac;
+end
+
   for n = 1:length(p.saveplot)
     j = p.saveplot(n);
     if exist(['tmp/',int2str(j),'.fig'],'file')
       figload(['tmp/',int2str(j),'.fig'],2)
     end
     warning off
-    if ismac
-      eval(['print -depsc ',f.plots,'_' int2str(j) '.eps '])
+    if imac
+      if findstr(p.print_formats,'ps')
+        eval(['print -depsc ',f.plots,'_' int2str(j) '.eps '])
+      end
     else
-      eval(['print -dpsc ',f.plots,'_' int2str(j) '.ps '])
+      if findstr(p.print_formats,'ps')
+        eval(['print -dpsc ',f.plots,'_' int2str(j) '.ps '])
+      end
+    end
+    if findstr(p.print_formats,'jpg')
+      eval(['print -djpeg ',f.plots,'_' int2str(j) '.jpg '])
     end
     warning on
   end

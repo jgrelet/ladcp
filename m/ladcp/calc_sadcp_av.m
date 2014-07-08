@@ -12,15 +12,16 @@ function   [data,messages] = calc_sadcp_av(data,params,values,messages)
 %		values		- LADCP values structure
 %		messages	- LADCP messages structure
 %
-% version 0.4	last change 23.09.2007
+% version 0.6	last change 13.07.2012
 
 % orig. M.Visbeck & A.Thurnherr, LDEO
 % modified by G.Krahmann, IFM-GEOMAR
 
-% check for input vector orientation    	GK  Dec 2006    0.1->0.2
-% remove bins with higher error than others	GK  Jul 2007	0.2->0.3
-% modified error calculation			GK  Sep 2007	0.3-->0.4
-% modifies to skip when file is not there MV Jul 2008  0.7-->0.8
+% check for input vector orientation                   GK  Dec 2006    0.1-->0.2
+% remove bins with higher error than others            GK  Jul 2007    0.2-->0.3
+% modified error calculation                           GK  Sep 2007    0.3-->0.4
+% modifies to skip when file is not there              MV  Jul 2008    0.4-->0.5
+% renamed cosd and sind to cos_d and sin_d             GK, 13.07.2012  0.5-->0.6
 
 %
 % general function info
@@ -59,7 +60,7 @@ end
 % check if SADCP position matches the LADCP position
 % if not, display data but do not extract
 %
-if (abs(mean(data.lon_sadcp(ind))-values.lon)>0.1/cosd(values.lat) |...
+if (abs(mean(data.lon_sadcp(ind))-values.lon)>0.1/cos_d(values.lat) |...
       abs(mean(data.lat_sadcp(ind))-values.lat)>0.1)
 
   disp('>   Position of SADCP data is more than 0.1 degree away from LADCP')

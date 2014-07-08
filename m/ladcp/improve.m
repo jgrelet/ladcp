@@ -14,7 +14,7 @@ function [data,params,values,messages] = improve(data,params,values,messages)
 %		values		- modified LADCP value structure
 %		messages	- array of warnings
 %
-% version 0.5	last change 20.09.2007
+% version 0.6	last change 29.08.2011
 
 % G.Krahmann, LDEO Nov 2004
 
@@ -22,6 +22,7 @@ function [data,params,values,messages] = improve(data,params,values,messages)
 % error check for empty raw data		GK, Aug 2007  	0.2-->0.3
 % threw out too much wlim data			GK, Sep 2007	0.3-->0.4
 % stop processing, if too many tilt>tiltmax	GK, Sep 2007	0.4-->0.5
+% typo                                      GK, 29.08.2011  0.5-->0.6
 
 
 %
@@ -120,7 +121,7 @@ end
 % fix problems with a compass
 %
 if params.fix_compass>0
-  [data,params] = misc_fixcompass(data,params);
+  [data,params] = misc_fix_compass(data,params);
 end
 
 

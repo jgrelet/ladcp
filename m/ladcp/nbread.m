@@ -1,5 +1,15 @@
 function varargout = nbread(fid)
+% function varargout = nbread(fid)
+%
 %NBREAD
+%
+% input  :  fid            - file identifier
+%
+% output :  ?
+%
+% version 0.2  last change 13.07.2012
+
+% renamed cosd and sind to cos_d and sin_d             GK, 13.07.2012  0.1-->0.2
 
 % rewind to beginning of file and read header to get the number of bytes
 % in each ensemble, the number of data types, and the address offsets
@@ -96,7 +106,7 @@ function fl = nbflead(fid)
 %NBFLEAD Read fixed leader data from raw narrow-band ADCP data file.
 
 fl = zeros(1,6);
-f = cosd(20)/cosd(30);
+f = cos_d(20)/cos_d(30);
 fseek(fid,8,'cof');
 
 % pings per ensemble

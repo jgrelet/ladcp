@@ -12,15 +12,22 @@ for n=1:length(dd)
 end
 global mh
 
+% handle newer matlab versions
+if version('-release')>=14
+    imac = 0;
+else
+    imac = ismac;
+end
+
 % create 2 windows
 % one for the control menu and one for the actual plots
 figure(1)
 clf
-set(gcf,'position',[10,10+ismac*100,170,750],'numbertitle','off','menubar',...
+set(gcf,'position',[10,10+imac*100,170,750],'numbertitle','off','menubar',...
 	'none','name','LADCP 1');
 figure(2)
 clf
-set(gcf,'position',[190,10+ismac*100,800,696],'numbertitle','off',...
+set(gcf,'position',[190,10+imac*100,800,696],'numbertitle','off',...
 	'name','LADCP 2');
 
 % create the menu
@@ -83,4 +90,7 @@ mh(14) = uicontrol('style','push','position',[15,260,140,20],...
 mh(15) = uicontrol('style','push','position',[15,235,140,20],...
 	'horizontalalignment','center','string','Correl. Edited',...
 	'callback','plot_controls(15)');
+mh(16) = uicontrol('style','push','position',[15,210,140,20],...
+	'horizontalalignment','center','string','Inv. Weights 2',...
+	'callback','plot_controls(16)');
 	

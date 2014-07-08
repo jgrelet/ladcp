@@ -4,20 +4,20 @@ function [values] = prepare_cast(stn)
 % prepare input data (CTD, LADCP, SADCP, NAV) so that it is digestible
 % by the LADCP processing routines
 %
-% input  :	stn		station number
-%		    values	LADCP structure containing various values
+% input  :	stn     station number
+%           values  LADCP structure containing various values
 %
 % output :  values  LADCP structure containing various values
 
 % this is to separate the processing from cruise dependent input data
 % variations
 %
-% version 0.3	last change 06.03.2006
+% version 0.4	last change 07.2008
 
 % G.Krahmann, LDEO
 
-% modified the initial time and pos     G.K.    06.03.2006  0.2->0.3
-% modified to save information of existing files MV 07.2008  0.7-> 0.8
+% modified the initial time and pos               GK, 06.03.2006  0.2-->0.3
+% modified to save information of existing files  MV,    07.2008  0.3-->0.4
 
 
 %
@@ -156,7 +156,7 @@ prepladcp(stn);
 % v_sadcp		matrix containing meridional velocities in m/s
 % z_sadcp		vector containing the depths of the velocity data in m
 if exist(['data/sadcp/sadcp',int2str0(stn,3),'.mat'],'file')
-  disp(['    Found previously prepared SADCP data.'])
+  disp('    Found previously prepared SADCP data.')
 else
   prepsadcp(stn,values);
 end

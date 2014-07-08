@@ -1,24 +1,25 @@
-function [reslag,i1,i2,co]=bestlag(a1,a2,nlag)
-% function [reslag,i1,i2,co]=bestlag(a1,a2,nlag)
+function [reslag,i1,i2,co]=bestlag2(a1,a2,nlag)
+% function [reslag,i1,i2,co]=bestlag2(a1,a2,nlag)
 %
 % function to find the best shift for two vectors
 % uses median difference
 % 
-% input :  	a1		: first vector
-%          	a2		: second vector
+% input :  	a1      : first vector
+%          	a2      : second vector
 %          	nlag		: maximum lag
 %
-% output:	reslag		: resulting best lag
-%		i1		: usable index vector of series a1
-%		i2		: usable index vector of series a2
-%		co		: correlation of overlapping parts
+% output:   reslag  : resulting best lag
+%           i1      : usable index vector of series a1
+%           i2      : usable index vector of series a2
+%           co      : correlation of overlapping parts
 %
-% version 0.3	last change 03.07.2008
+% version 0.4	last change 02.06.2011
 
 
 % M. Visbeck LDEO August-2002
 % rewrite Gerd Krahmann, IFM-GEOMAR, Sep 2007
-% bug fix when handling data set lengths      GK, 03.07.2008    0.2-->0.3
+% bug fix when handling data set lengths      GK, 03.07.2008  0.2-->0.3
+% bug fix when to short data series           GK, 02.06.2011  0.3-->0.4
 
 %
 % parse arguments
@@ -32,10 +33,10 @@ end
 % prepare input data
 %
 a1 = a1(:);
-ind = find(~isfinite(a1));
+ind = (~isfinite(a1));
 a1(ind) = 0;
 a2 = a2(:);
-ind = find(~isfinite(a2));
+ind = (~isfinite(a2));
 a2(ind) = 0;
 l1 = length(a1);
 l2 = length(a2);
@@ -54,7 +55,9 @@ end
 %
 if max(abs(nlag)) > length(a1)
   disp(' not enough data to determine lag')
-  lag = 0;
+  reslag = 0;
+  i1 = [];
+  i2 = [];
   co = 1;
   return
 end
@@ -63,9 +66,14 @@ end
 %
 % cross correlate data
 %
-[res,reslag] = xcorr(a1,a2,nlag);
+if exist('xcorr')
+  [res,reslag] = xcorr(a1,a2,nlag);
+else
+  [res,reslag] = xcorr3(a1,a2,nlag);
+end
 [dummy,resind] = nmax(res);
 reslag = reslag(resind);
+
 
 
 %

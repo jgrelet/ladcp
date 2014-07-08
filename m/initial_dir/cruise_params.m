@@ -6,6 +6,10 @@
 %
 % this is the location to enter special settings which apply
 % to a whole cruise or to your special LADCP system setup
+%
+% version 0.2  last change 20.05.2011
+
+% changed handling of cruise_id                GK, 20.05.2011  0.1-->0.2
 
 
 % remove the following three lines after modifying the parameters
@@ -18,10 +22,18 @@ return
 % set the  Cruise id
 %
 % this will appear on the top of all plots
-% and in all file names
 %
-p.cruise_id	= 'CARI3';
-p.name  = ['car3',int2str0(stn,3)];
+p.cruise_id	= 'CRUISE';
+
+
+%
+% file names will be composed by the directory name followed by '_NNN'
+% where NNN is the station number
+%
+% here you could override this default behaviour
+% you should however leave the station number part as in the example
+%
+%p.name  = ['cruise_id',int2str0(stn,3)];
 
 
 %
@@ -32,7 +44,7 @@ p.name  = ['car3',int2str0(stn,3)];
 % if you are measuring over newyear, you will need to introduce an
 % if-statement here
 %
-p.correct_year = 2006;
+p.correct_year = 2011;
 
 
 %
@@ -40,8 +52,11 @@ p.correct_year = 2006;
 %
 % this is just used in one plot
 %
-p.down_sn = NaN;
-p.up_sn = NaN;
+% these should starting at version 10.12 be extracted from the raw data
+% files. Use these positions to override the extraction.
+%
+%p.down_sn = NaN;
+%p.up_sn = NaN;
 
 
 %
@@ -89,3 +104,5 @@ p.up_sn = NaN;
 % p.dragfac
 % p.urange/zrange
 % p.sadcp_dtok
+% p.edit_mask_dn_bins
+% p.edit_mask_up_bins
