@@ -6,7 +6,7 @@ Please try it and report any problems or bugs to
 gkrahmann@ifm-geomar.de
 
 Gerd Krahmann, Kiel July 2006
-
+under Git J Grelet may 2014
 
 ----------------------------------------------------------
 
