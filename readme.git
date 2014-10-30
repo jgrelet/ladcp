@@ -1,6 +1,10 @@
 Quick guide to setup git with on Sourcesup 
 
-  Install git under windows or Linux:
+  Install git under Windows:
+  https://code.google.com/p/tortoisegit/
+  http://msysgit.github.io
+
+  or Linux:
   http://git-scm.com/download
 
   Initialize git:
