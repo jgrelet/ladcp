@@ -195,10 +195,10 @@ else
     di.izm(:,im) = mean(data.izm(:,i1)')';
     
     % heading
-    dummy = exp(-sqrt(-1)*(data.hdg(1,i1))*pi/180);
+    dummy = exp(-1i*(data.hdg(1,i1))*pi/180);
     di.hdg(1,im) = -angle(mean(dummy))*180/pi;
     if values.up==1
-      dummy = exp(-sqrt(-1)*(data.hdg(2,i1))*pi/180);
+      dummy = exp(-1i*(data.hdg(2,i1))*pi/180);
       di.hdg(2,im) = -angle(mean(dummy))*180/pi;
     end
 
@@ -327,13 +327,13 @@ di.svel = data.svel;
 
 bin_no = [0];
 if length(data.zu) > 0 
-  bin_no = [-length(data.zu):1 bin_no]; 
+  bin_no = [-length(data.zu):-1 bin_no]; 
 end
 if length(data.zd) > 0 
   bin_no = [bin_no 1:length(data.zd)]; 
 end
 
-figload('tmp/16.fig',2)
+%figload('tmp/16.fig',2)
 subplot(3,1,2);
 imagesc([1:size(di.ts,2)],bin_no,...
 	[di.weight(1:length(data.zu),:); ...
@@ -346,7 +346,7 @@ xlabel('Super Ensemble #');
 ylabel('Bin #');
 title('Weights based on various parameters')
 
-streamer([p.name,' Figure 16']);
-hgsave('tmp/16')
+drawnow
+%hgsave('tmp/16')
 
 

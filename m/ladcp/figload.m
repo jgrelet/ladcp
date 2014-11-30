@@ -44,14 +44,14 @@ if exist(file,'file')
   v2 = str2num(vv(ind(1)+1:ind(2)-1));
   if v1>=7 & v2>3
 
-    sfigure(2);
+    sfigure(fig);
     clf
     % some code 'taken' from importfig.m at mathworks user site
     ImportFig=hgload(file,struct('visible','off'));
     ImportFigAxes=get(ImportFig,'Children'); 
     cmap = get(ImportFig,'Colormap');
-    NewSubplotAxes=copyobj(ImportFigAxes,2);
-    set(2,'colormap',cmap);
+    NewSubplotAxes=copyobj(ImportFigAxes,fig);
+    set(fig,'colormap',cmap);
     delete(ImportFig);
 
     return

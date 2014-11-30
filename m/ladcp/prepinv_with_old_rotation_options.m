@@ -79,10 +79,10 @@ if 1
 %%%%%%%%%%%%%%%%%%%% rotation
 
 % prepare for heading averaging
-u1d = exp(-sqrt(-1)*(d.hdg(1,:))*pi/180); 
+u1d = exp(-1i*(d.hdg(1,:))*pi/180); 
 if values.up==1
 
-  u1u = exp(-sqrt(-1)*(d.hdg(2,:))*pi/180); 
+  u1u = exp(-1i*(d.hdg(2,:))*pi/180); 
 
   % get mean heading offset from COMPASS comparison
   hdg_offset = compoff(u1d,u1u);
@@ -109,7 +109,7 @@ if values.up==1
   orient tall
 
   % plot compass comparison between up and down instrument
-  da = -angle(u1d)+angle(u1u*exp(sqrt(-1)*hdg_offset*pi/180));
+  da = -angle(u1d)+angle(u1u*exp(1i*hdg_offset*pi/180));
   ii = find(da>pi);
   da(ii) = da(ii)-2*pi;
   ii = find(da<-pi);
@@ -180,10 +180,10 @@ if values.up==1
     l.ru(ii) = NaN;
     l.rv(ii) = NaN;
 
-    uu = meanmediannan(d.ru(d.izu,:)+sqrt(-1)*d.rv(d.izu,:)...
-              -l.ru(d.izu,:)-i*l.rv(d.izu,:)+d.weight(d.izu,:)*0,2);
-    ud = meanmediannan(d.ru(d.izd,:)+sqrt(-1)*d.rv(d.izd,:)...
-             -l.ru(d.izd,:)-i*l.rv(d.izd,:)+d.weight(d.izd,:)*0,2);
+    uu = meanmediannan(d.ru(d.izu,:)+1i*d.rv(d.izu,:)...
+              -l.ru(d.izu,:)-1i*l.rv(d.izu,:)+d.weight(d.izu,:)*0,2);
+    ud = meanmediannan(d.ru(d.izd,:)+1i*d.rv(d.izd,:)...
+             -l.ru(d.izd,:)-1i*l.rv(d.izd,:)+d.weight(d.izd,:)*0,2);
     clear l
 
     ii = find(~isfinite(uu+ud));
@@ -266,14 +266,14 @@ if values.up==1
 
   % rotate upward looking ADCP to downward looking ADCP
   if (p.rotup2down~=0 & length(d.zd)~=length(d.ru(:,1)))
-    da = angle(u1d)-angle(u1u*exp(-sqrt(-1)*hdg_offset*pi/180));
+    da = angle(u1d)-angle(u1u*exp(-1i*hdg_offset*pi/180));
     ii = find(da>pi); 
     da(ii)=da(ii)-2*pi; 
     ii=find(da<-pi); 
     da(ii)=da(ii)+2*pi;
     d.diff_hdg = da;
 
-    u1uc = exp(-sqrt(-1)*(d.hdg(2,:)-hdg_offset)*pi/180);
+    u1uc = exp(-1i*(d.hdg(2,:)-hdg_offset)*pi/180);
     hrotcomp = angle(u1uc./u1d)*180/pi;
     d.rot_comp = hrotcomp;
 
@@ -295,22 +295,22 @@ if values.up==1
       l.ru(ii) = NaN;
       l.rv(ii) = NaN;
 
-      uu = meanmediannan(d.ru(d.izu,:)+sqrt(-1)*d.rv(d.izu,:)...
-             -l.ru(d.izu,:)-i*l.rv(d.izu,:)+d.weight(d.izu,:)*0,2);
-      ud = meanmediannan(d.ru(d.izd,:)+sqrt(-1)*d.rv(d.izd,:)...
-             -l.ru(d.izd,:)-i*l.rv(d.izd,:)+d.weight(d.izd,:)*0,2);
+      uu = meanmediannan(d.ru(d.izu,:)+1i*d.rv(d.izu,:)...
+             -l.ru(d.izu,:)-1i*l.rv(d.izu,:)+d.weight(d.izu,:)*0,2);
+      ud = meanmediannan(d.ru(d.izd,:)+1i*d.rv(d.izd,:)...
+             -l.ru(d.izd,:)-1i*l.rv(d.izd,:)+d.weight(d.izd,:)*0,2);
       clear l
 
     else
       iz = p.trusted_i;
       good = find(iz<=length(d.izu));
       uu = meanmediannan(d.ru(d.izu(iz(good)),:)+...
-        sqrt(-1)*d.rv(d.izu(iz(good)),:)+...
-        d.weight(d.izu(iz(good)),:),1);
+        1i*d.rv(d.izu(iz(good)),:)+...
+        d.weight(d.izu(iz(good)),:)*0,1);
       good = find(iz<=length(d.izd));
       ud = meanmediannan(d.ru(d.izd(iz(good)),:)+...
-        sqrt(-1)*d.rv(d.izd(iz(good)),:)+...
-        d.weight(d.izd(iz(good)),:),1);
+        1i*d.rv(d.izd(iz(good)),:)+...
+        d.weight(d.izd(iz(good)),:)*0,1);
     end
     %  try to take speed into account
     hrotvel = angle(uu./ud)*180/pi;

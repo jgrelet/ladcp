@@ -301,11 +301,13 @@ if ~isempty(data.ctdtime_data)
     % will change this to a hopefully less error prone algorithm GK
     good_range = find(~isnan(data.wctd));
     good_range = good_range([1,end]);
+    nsamples = 24;
     i1 = [1:length(w)];
-%    ii = [-12:12] + fix(length(i1)*0.3);
-%    ii = [ii, [-12:12]+fix(length(i1)*0.7)];
-    ii = [-12:12] + fix( good_range(1)+0.3*diff(good_range) );
-    ii = [ii, [-12:12] + fix( good_range(2)-0.3*diff(good_range) )];
+%    ii = [-nsamples:nsamples] + fix(length(i1)*0.3);
+%    ii = [ii, [-nsamples:nsamples]+fix(length(i1)*0.7)];
+    
+    ii = [-nsamples:nsamples] + fix( good_range(1)+0.3*diff(good_range) );
+    ii = [ii, [-nsamples:nsamples] + fix( good_range(2)-0.3*diff(good_range) )];
     ii = ii( find( ii>0 & ii<length(i1) ) );
     
     figure(2)  
@@ -316,9 +318,9 @@ if ~isempty(data.ctdtime_data)
     plot(data.wctd(i1(ii)),'-r')
     axis tight
     ax=axis;
-    plot([25 25],ax(3:4),'-k')
-    text(5,mean(w(i1(ii(25:end)))),'down cast (sample at 30% of cast)')
-    text(30,mean(w(i1(ii(1:25)))),'up cast (sample at 70% of cast)')
+    plot((2*nsamples+1)*[1 1],ax(3:4),'-k')
+    text(nsamples,mean(w(i1(ii(2*nsamples+1:end)))),'down cast (sample at 30% of cast)','horizontalalignment','center')
+    text(3*nsamples,mean(w(i1(ii(1:2*nsamples)))),'up cast (sample at 70% of cast)','horizontalalignment','center')
     title(['best lag W: ',int2str(lag),' scans ~ ',...
              int2str(lagdt*86400),' sec.  corr.:',num2str(co)]);
     ylabel('W used for lag correlation')

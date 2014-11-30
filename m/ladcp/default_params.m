@@ -25,6 +25,16 @@ params.software = 'GEOMAR LADCP software: Version 10.16: 2013-02-14';
 %
 params.whoami = whoami;
 
+%
+% store station number and name (in proper format)
+%
+if ischar(stn)
+   params.ladcp_station_name = stn;
+   params.ladcp_station = str2num(stn);
+else
+   params.ladcp_station = stn;
+   params.ladcp_station_name = num2str(stn,'%03d');
+end
 
 %
 % extract cruise id from upper directory name
@@ -42,77 +52,7 @@ if exist('logs')==7
   else
     params.name = pd;
   end
-  params.name = [params.name,'_',int2str0(stn,3)];
-end
-
-if 0
-
-% directory names
-f.logs_dir        = 'logs';
-f.plots_dir       = 'plots';
-f.prof_dir        = 'profiles';
-f.raw_dir         = 'data/raw_ladcp';
-f.ctd_ts_dir      = 'data/ctdtime';
-f.ctd_prof_dir    = 'data/ctdprof';
-f.nav_dir         = 'data/nav';
-f.sadcp_dir       = 'data/sadcp';
-
-% file names
-stn_fmt         = '%03d';
-dn_file_fmt     = '%03dDN000.000';
-up_file_fmt     = '%03dUP000.000';
-f.ladcpdo = sprintf([f.raw_dir '/' stn_fmt '/' dn_file_fmt],stn,stn);
-if (~exist(f.ladcpdo,'file')) 
-  dn_file_fmt     = '%03ddn000.000';
-  f.ladcpdo = sprintf([f.raw_dir '/' stn_fmt '/' dn_file_fmt],stn,stn);
-end;
-f.ladcpup = sprintf([f.raw_dir '/' stn_fmt '/' up_file_fmt],stn,stn);
-if (~exist(f.ladcpup,'file')) 
-  up_file_fmt     = '%03dup000.000';
-  f.ladcpup = sprintf([f.raw_dir '/' stn_fmt '/' up_file_fmt],stn,stn);
-end;
-if ~isfield(f,'ladcpup') 
-  f.ladcpup = ''; 
-end;
-
-% check for multiple file cases
-count = 1;
-while exist(f.ladcpdo(end,:),'file')
-  nname = f.ladcpdo(end,:);
-  nname(end-[6:-1:4]) = int2str0(count,3);
-  if exist(nname,'file')
-    f.ladcpdo(end+1,:) = nname;
-    count = count+1;
-  else
-    break
-  end
-end
-count = 1;
-keyboard
-while exist(f.ladcpup(end,:),'file')
-  nname = f.ladcpup(end,:);
-  nname(end-[6:-1:4]) = int2str0(count,3);
-  if exist(nname,'file')
-    f.ladcpup(end+1,:) = nname;
-    count = count+1;
-  else
-    break
-  end
-end
-
-f.nav = ['data/nav/nav',int2str0(stn,3),'.mat'];
-f.ctdprof = ['data/ctdprof/ctdprof',int2str0(stn,3),'.mat'];
-f.ctdtime = ['data/ctdtime/ctdtime',int2str0(stn,3),'.mat'];
-f.sadcp = ['data/sadcp/sadcp',int2str0(stn,3),'.mat'];
-
-% file name for results (extensions will be added by software)
-%  *.bot            bottom referenced ASCII data
-%  *.lad            profile ASCII data
-%  *.mat            MATLAB  format >> dr p ps f
-%  *.cdf            NETCDF  (binary) LADCP data format 
-%  *.log            ASCII log file of processing
-%  *.txt            ASCII short log file
-%  *.ps             post-script figure of result 
+  params.name = [params.name,'_',params.ladcp_station_name];
 end
 
 
@@ -123,12 +63,6 @@ end
 % preset start and end time vectors
 params.time_start = [];
 params.time_end = [];
-
-
-%
-% store station number
-%
-params.ladcp_station = stn;
 
 
 % restrict time range to profile and disregard data close to surface
@@ -301,9 +235,11 @@ params.fix_compass = 0;
 % is pinging faster, this will result in whole ensembles being
 % dropped or used multiple times.
 %
+% params.up2down==0 will not resample, unless different ping rates are detected
 % params.up2down==1 will resample the uplooker onto the downlooker
+% params.up2down==2 will resample the downlooker onto the uplooker
 %
-params.up2down = 1;
+params.up2down = 0;
 
 %
 % give compass offset in addition to declination (1) for down (2) for up
@@ -483,14 +419,6 @@ params.maxlag = 20;
 params.bestlag_testing_on = 0;
 
 
-%
-% in case the instruments do not ping in sync but the ping rates differ only by a
-% tiny amount the routine will not automatically resample the uplooker onto the
-% downlooker timing. This can be forced by setting the following parameter to 1.
-%
-params.force_resample_uplooker = 0;
-
-
 % apply tilt correction
 % tiltcor(1)=down-pitch bias
 % tiltcor(2)=down-rol bias
@@ -600,7 +528,7 @@ ps.smoofac = 0;
 ps = setdefv(ps,'btrk_weight_nblen',[0 0]);
 
 % Weight for SADCP data
-% ps.sadcpfac=1 about equal weight for SDACP profile
+% ps.sadcpfac=1 about equal weight for SADCP profile
 ps.sadcpfac = 1;
 
 % The following parameter (slack time for including SADCP data outside
@@ -646,7 +574,7 @@ ps.up_dn_looker = 1;
 
 
 % How to solve the inverse
-%     ps.solve = 0  Cholseky transform
+%     ps.solve = 0  Cholesky transform
 %              = 1  Moore Penrose Inverse give error for solution
 ps.solve = 1; 
 
@@ -832,7 +760,7 @@ params.dist_up_down = 0;
 %
 % what is the format of the output plots
 % can be multiple ones, separated by comma
-% e.g.  params.print_formats = 'ps,jpg';
+% e.g.  params.print_formats = 'ps,jpg,png';
 %
 params.print_formats = 'ps';
 
@@ -854,7 +782,7 @@ params.minimum_correlation_threshold = [0,0];
 params.down_up_weight_factors = [1,1];
 
 
-disp(params.software);                       % show version
+%disp(params.software);                       % show version
 
 p = params;
 clear params

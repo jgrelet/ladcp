@@ -27,7 +27,6 @@ disp('MISC_CUT_PROFILE:  cut raw LADCP data to only the profile part')
 
 [values.maxdepth,ibot] = max(-data.z);
 
-
 %
 % assign a depth to each bin
 %
@@ -161,12 +160,11 @@ end
 ii = data.z*0;
 ic = [i1(end):i2(1)];
 ii(ic) = 1;
-if (sum(ii)~=length(ii)) & params.cut>0 
+if (sum(ii)~=length(ii)) 
   disp('    Removing data at beginning and end of cast')
   disp('      adjusting start and end time ')
   values.firstlastindex = values.firstlastindex(1)-1+[ic(1),ic(end)];
   data = cutstruct(data,ii);
-  params.zpar([1 3]) = params.cut;
   subplot(221) 
   ax=axis; 
   plot([1 1]*ic(1),ax(3:4),'--k')
@@ -179,13 +177,14 @@ if (sum(ii)~=length(ii)) & params.cut>0
   plot([1 1]*ic(end),ax(3:4),'--k')
   axis(ax)
   
-  params.time_start = gregoria(data.time_jul(1));
-  params.time_end = gregoria(data.time_jul(end));
-
   % save start and end depth
   params.zpar(1) = -data.z(1);
   params.zpar(3) = -data.z(end);
+
 end
+
+params.time_start = gregoria(data.time_jul(1));
+params.time_end = gregoria(data.time_jul(end));
 
 
 %
@@ -234,6 +233,7 @@ if ~isempty(data.ctdtime_data)
   xlabel('Time in hours')
   ylabel('CTD pressure [dBar]')
   set(gca,'ydir','reverse')
+  grid on;
 
   ax = axis;
   plot((data.time_jul(1)-data.ctdtime_time(1))*24*[1,1], ax(3:4),'r--')

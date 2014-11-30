@@ -238,7 +238,6 @@ if p.edit_mask_last_bin(1)~=0
   
   nbad = 0;
   dummy = d.weight;
-if 0
   for n=1:size(d.weight,2)
 %    ind = find(~isnan(d.weight(:,n)));
     ind = find(d.weight(:,n)>0);
@@ -280,7 +279,7 @@ else
     for n=1:size(mask,2)
       ind = find(~isnan(mask(:,n)));
       if ~isempty(ind)
-        ind = ind - mask_up;
+        ind = ind - mask_dn;
         if ind>0
           mask(ind+1:end,n) = nan;
         end
@@ -288,7 +287,6 @@ else
     end
     d.weight(d.izd,:) = d.weight(d.izd,:).*mask;
   end
-end
   nbad = length(find(isnan(dummy)-isnan(d.weight)));
 
   disp(sprintf('    Last Bin masking           : set %d weights to NaN',nbad));

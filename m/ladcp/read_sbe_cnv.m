@@ -165,7 +165,7 @@ for n=0:30
     % check whether the new variable is a standard one
     % if so, extract the data
     %
-    if ~isempty(findstr(fld,'prDM')) | ~isempty(findstr(fld,'prdM'))
+    if ~isempty(findstr(fld,'prDM')) | ~isempty(findstr(fld,'prdM')) | ~isempty(findstr(fld,'prSM'))
         data.p = data1(:,n+1);
     elseif ~isempty(findstr(fld,'sal00'))
         data.s_pri = data1(:,n+1);
@@ -221,7 +221,7 @@ for n=0:30
     elseif ~isempty(findstr(fld,'timeJ'))
         data.timej = data1(:,n+1);
     elseif ~isempty(findstr(fld,'timeS'))
-        data.timej = data1(:,n+1)+hdr.system_upload_sbe_doy;
+        data.times = data1(:,n+1); 
     elseif ~isempty(findstr(fld,'pumps'))
         data.pumps = data1(:,n+1);
         % 
@@ -417,49 +417,49 @@ end
 % also interpolate Seabird's time so that it is continuous and
 % not always 2 same-times after another (too few digits in timej)
 %
+if isfield(data,'times') | isfield(data,'timej')
 if ~isempty(hdr.nmea_utc)
-  d0 = data.timej(1);
-  d1 = hdr.system_upload_datenum-datenum(datevec(hdr.system_upload_datenum).*...
-    [1,0,0,0,0,0]);
-  d2 = datenum(hdr.nmea_utc)-datenum([hdr.nmea_utc(1),0,0,0,0,0]);
-  if use_system_upload_time==1
-    system_upload_date = datevec(hdr.system_upload_datenum);
-    data.datenum = data.timej-hdr.system_upload_sbe_doy + datenum(system_upload_date(1:3));
-    hdr.use_datenum = hdr.system_upload_datenum;
-    disp('using system upload date/time instead of NMEA date/time')
+  if isfield(data,'times')
+     data.datenum = hdr.start_time_datenum + data.times/86400 - floor(hdr.start_time_datenum) ...
+                  + datenum(hdr.nmea_utc(1:3));
   else
-    data.datenum = data.timej-hdr.system_upload_sbe_doy + datenum(hdr.nmea_utc(1:3));
+     data.datenum = data.timej - hdr.start_time_doy + datenum(hdr.nmea_utc(1:3));
   end
+  d1 = hdr.system_upload_datenum - datenum(datevec(hdr.system_upload_datenum).*...
+    [1,0,0,0,0,0]);
+  d2 = hdr.nmea_utc_datenum - datenum([hdr.nmea_utc(1),0,0,0,0,0]);
   if abs(d1-d2)>1/1440
     fprintf(1,'\n',[]);
-    disp(['File name     : ',fname])
-    disp(['Computer time : ',datestr(d1,31)])
-    disp(['NMEA time     : ',datestr(d2,31)])
+    disp(datestr(d1,31))
+    disp(datestr(d2,31))
     warning('NMEA and CTD computer time differ by more than 1 minute')
-    % usually we trust the NMEA date more than the system date and correct the system time that
-    % is stored with the CTD data
-    % if the flag to use system upload time instead of NMEA time is set, then this correction
-    % is not done
-    if use_system_upload_time==0
-      data.timej = data.timej-hdr.system_upload_sbe_doy + datenum([0,hdr.nmea_utc(2:3)]);
-    end
-  end
-  jump = find(diff(data.datenum(:)')>1e-5);
-  lim = [[1,jump];[jump+1,length(data.datenum)]];
-  for n=1:size(lim,2)
-    data.datenum(lim(1,n):lim(2,n)) = linspace(data.datenum(lim(1,n)),...
-      data.datenum(lim(2,n)),lim(2,n)-lim(1,n)+1);
+    data.timej = data.timej-hdr.start_time_doy + datenum([0,hdr.nmea_utc(2:3)]);
   end
 else
   warning('no NMEA data in header, proper times are not ensured!')
-  upload = datevec(hdr.system_upload_datenum);
-  data.datenum = data.timej + datenum(upload.*[1,0,0,0,0,0]);
-  jump = find(diff(data.datenum(:)')>1e-5);
-  lim = [[1,jump];[jump+1,length(data.datenum)]];
-  for n=1:size(lim,2)
-    data.datenum(lim(1,n):lim(2,n)) = linspace(data.datenum(lim(1,n)),...
-      data.datenum(lim(2,n)),lim(2,n)-lim(1,n)+1);
+  if isfield(data,'times')
+     data.datenum = hdr.start_time_datenum + data.times/86400;
+  else
+     start_time = datevec(hdr.start_time_datenum);
+     data.datenum = data.timej + datenum(start_time.*[1,0,0,0,0,0]);
   end
+end
+jump = find(diff(data.datenum(:)')>1e-5);
+lim = [[1,jump];[jump+1,length(data.datenum)]];
+for n=1:size(lim,2)
+  data.datenum(lim(1,n):lim(2,n)) = linspace(data.datenum(lim(1,n)),...
+    data.datenum(lim(2,n)),lim(2,n)-lim(1,n)+1);
+end
+% display a warning in case CTD time is monotonous
+dt = data.datenum(2:end)-data.datenum(1:end-1);
+ind = find(dt<=0);
+if ~isempty(ind)
+   disp(['CTD time is not monotonous - need to correct the following times :']);
+   for nt=1:length(ind)
+       disp(['>   ',num2str(data.timej(ind(nt)))]);
+   end
+   error(' ');
+end
 end
 
 
@@ -582,39 +582,3 @@ if ~isempty(ind)
 else 
   data.haardtc_pos_outliers = [];
 end
-
-%
-% check whether parts of lat/lon are missing
-% if that is the case then, interpolate and fill missing values in header data too
-%
-% this is a special treatment for pos_403_1
-%
-bad = find(isnan(data.latitude));
-good = find(~isnan(data.latitude));
-%disp(length(bad)/length(good)*100)
-%disp(std(bad)/std(good))
-if length(bad)/length(good)*100<20 & length(bad)>100
-  if std(bad)/std(good)>0.8 & std(bad)/std(good)<1.2
-    data.latitude(1:300) = nan;
-    bad = find(isnan(data.latitude));
-    good = find(~isnan(data.latitude));
-    data.latitude(bad) = interp1(good,data.latitude(good),bad,'nearest','extrap');
-  else
-    warning('found many missing latitudes that are not evenly distributed over time')
-  end
-end
-bad = find(isnan(data.longitude));
-good = find(~isnan(data.longitude));
-%disp(length(bad)/length(good)*100)
-%disp(std(bad)/std(good))
-if length(bad)/length(good)*100<20 & length(bad)>100
-  if std(bad)/std(good)>0.8 & std(bad)/std(good)<1.2
-    data.longitude(1:300) = nan;
-    bad = find(isnan(data.longitude));
-    good = find(~isnan(data.longitude));
-    data.longitude(bad) = interp1(good,data.longitude(good),bad,'nearest','extrap');
-  else
-    warning('found many missing longitudes that are not evenly distributed over time')
-  end
-end
-

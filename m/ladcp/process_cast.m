@@ -47,8 +47,10 @@ end
 % clear already loaded and saved data for reloading and reprocessing
 %
 if stn<0
-  clear_prep(-stn);
-  return
+%  clear_prep(-stn);
+%  return
+   disp('please use clear_prep');
+   return
 end
 
 
@@ -61,11 +63,13 @@ cruise_params;
 cast_params;
 files = misc_composefilenames(p,stn);
 
+disp(p.software);
+
 
 % 
 % prepare the various data files for easy loading
 %
-[values] = prepare_cast(stn);
+[values] = prepare_cast(p,files);
 
 
 %
@@ -154,7 +158,7 @@ drawnow
 %
 % form super ensembles
 %
-data1 = data;
+%data1 = data;
 [p,data,messages] = prepinv(messages,data,p,[],values);
 %[p,data1,messages] = prepinv_with_old_rotation_options(messages,data1,p,[],values);
 [di,p,data] = calc_ens_av(data,p,values);
@@ -232,7 +236,7 @@ sfigure(2);
 clf
 % experimental diagnostic of battery voltage
 %
-[p,messages] = calc_battery(p,values,messages);
+%[p,messages] = calc_battery(p,values,messages);
   
 %
 % complete task by repeating the most important warnings
@@ -301,6 +305,9 @@ if length(files.res)>1
       if findstr(p.print_formats,'jpg')
         eval(['print -djpeg ',files.plots,'_' int2str(j) '.jpg '])
       end
+    if findstr(p.print_formats,'png')
+       eval(['print -dpng ',files.plots,'_' int2str(j) '.png '])
+      end
       warning on
     end
   end
@@ -324,10 +331,11 @@ plot_controls(1)
 % FINAL STEP: CLEAN UP
 %----------------------------------------------------------------------
 
-
 fclose('all');				%  close all files just to make sure
 
 disp(' ')				% final message
 disp(['    Processing took ',int2str(toc),' seconds'])
 
 save6 tmp/last_processed
+
+diary off

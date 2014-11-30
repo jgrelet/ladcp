@@ -100,6 +100,7 @@ if ~isempty( bad )
   varargout{4} = varargout{4}(good,:,:);
   varargout{5} = varargout{5}(good,:,:);
   varargout{6} = varargout{6}(good,:,:);
+  varargout{7} = varargout{7}(good,:,:);
 end
 
 % check for bad values

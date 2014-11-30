@@ -609,13 +609,24 @@ if values.up==1
 
   end
 
-  if  abs(nmedian(diff(timd))-nmedian(diff(timu))) > 0.05/24/3600  |  params.force_resample_uplooker==1
+  if  abs(nmedian(diff(timd))-nmedian(diff(timu))) > 0.05/24/3600
     warn=('>   Average ping rates differ between instruments ');
     disp(warn)
     messages.warn = strvcat(messages.warn,warn);
     disp(['>   Avg down ping rate :',num2str(86400*nmean(diff(timd))),...
          '  avg up ping rate :',num2str(86400*nmean(diff(timu)))])
 
+    if params.up2down==0
+       if nmean(diff(timu))>nmean(diff(timd))
+          params.up2down==1;
+       else
+          params.up2down==2;
+       end
+     end
+  end
+
+  id = [1:length(timd)];
+  iu = [1:length(timu)];
     if params.up2down==1
       disp(['>   Resampling up instrument to down instrument''s timing.'])
       iu = [1:length(timd)];
@@ -624,11 +635,29 @@ if values.up==1
       for i=find(isfinite(timd))
         [m,iu(i)] = min(abs(timu-timd(i)));
       end
-      ilast = min(length(iu),length(timu));
-      disp(['>   Cast ends now differ by ',num2str(iu(ilast)-ilast),...
-          ' ensembles'])
-      id = [1:length(timd)];
-    else
+%     ilast = min(length(iu),length(timu));
+%     disp(['>   Cast ends now differ by ',num2str(iu(ilast)-ilast),...
+%         ' ensembles'])
+     % only keep data for which the difference between timd and timu
+     % does not exceed the ping rate of the downward-looking instrument
+     inan = find( abs(timd-timu(iu))>nmean(diff(timd)) );
+     vu = vu(iu,:,:);
+     vu(inan,:,:) = nan;
+     velu = velu(iu,:,:);
+     velu(inan,:,:) = NaN;   
+     eau = eau(iu,:,:);
+     eau(inan,:,:) = NaN;
+     cmu = cmu(iu,:,:);
+     cmu(inan,:,:) = NaN; 
+     pgu = pgu(iu,:,:);
+     pgu(inan,:,:) = NaN;
+     btu = btu(iu,:,:);
+     btu(inan,:,:) = NaN;
+     iu = [1:length(timd)];
+     % downward-looking time is set to downward-looking 
+     %  (required to prevent the occurrence of NaNs)
+     vu(:,1,v.tim) = timd;
+    elseif params.up2down==2
       disp(['>   Resampling down instrument to up instrument''s timing.'])
       id = [1:length(timu)];
       ii = (id>length(timd));  % removed a find  GK, 20.05.2011
@@ -636,17 +665,28 @@ if values.up==1
       for i=find(isfinite(timu))
         [m,id(i)] = min(abs(timd-timu(i)));
       end
-      ilast = min(length(id),length(timd));
-      disp(['>   Cast ends now differ by ',num2str(id(ilast)-ilast),...
-          ' ensembles'])
-      iu = [1:length(timu)];
-      if any(isnan(id))
-        1
-      end
-    end
-  else
-    id = [1:length(timd)];
-    iu = [1:length(timu)];
+%     ilast = min(length(id),length(timd));
+%     disp(['>   Cast ends now differ by ',num2str(id(ilast)-ilast),...
+%         ' ensembles'])
+     % only keep data for which the difference between timd and timu
+     % does not exceed the ping rate of the upward-looking instrument
+     inan = find( abs(timu-timd(id))>nmean(diff(timu)) );
+     vd = vd(id,:,:);
+     vd(inan,:,:) = nan;
+     veld = veld(id,:,:);
+     veld(inan,:,:) = NaN;
+     ead = ead(id,:,:);
+     ead(inan,:,:) = NaN;
+     cmd = cmd(id,:,:);
+     cmd(inan,:,:) = NaN;
+     pgd = pgd(id,:,:);
+     pgd(inan,:,:) = NaN;
+     btd = btd(id,:,:);
+     btd(inan,:,:) = NaN;
+     id = [1:length(timu)];
+     % upward-looking time is set to downward-looking 
+     %  (required to prevent the occurrence of NaNs)
+     vd(:,1,v.tim) = timu;
   end
 
 
@@ -654,36 +694,36 @@ if values.up==1
   % find best lag between two instruments by matching vertical velocity 
   %
   wu = squeeze(velu(iu,:,3));
-  dummy = squeeze(velu(iu,:,4));
-  bad = find(isnan(dummy));
-  if ~isempty(bad)
-    wu(bad) = nan;
-  end
+% dummy = squeeze(velu(iu,:,4));
+% bad = find(isnan(dummy));
+% if ~isempty(bad)
+%   wu(bad) = nan;
+% end
   wd = squeeze(veld(id,:,3));
-  dummy = squeeze(veld(id,:,4));
-  bad = find(isnan(dummy));
-  if ~isempty(bad)
-    wd(bad) = nan;
-  end
+% dummy = squeeze(veld(id,:,4));
+% bad = find(isnan(dummy));
+% if ~isempty(bad)
+%   wd(bad) = nan;
+% end
   wb2u = nmedian(wu');
   wb2d = nmedian(wd');
 
-  if params.up2down==1
-    [lag,iiu,id,co] = bestlag2(wb2u,wb2d);
-  else
+  if params.up2down==2
     [lag,iu,iid,co] = bestlag2(wb2u,wb2d);
+  else
+    [lag,iiu,id,co] = bestlag2(wb2u,wb2d);
   end
   if params.bestlag_testing_on==1 | co<0.9
     [lag1,iiu1,id1,co1] = bestlag(wb2u,wb2d,params.maxlag);
     disp('BESTLAG confirmation using old routine:')
     disp(['old result : ',int2str(lag1),' time steps   correlation : ',...
     	num2str(co1)])
-    disp(['new result : ',int2str(lag1),' time steps   correlation : ',...
+    disp(['new result : ',int2str(lag ),' time steps   correlation : ',...
       num2str(co)])
     if lag1~=lag
       figure(3)
       clf
-      plot(wb2u)
+      plot(wb2u,'k-')
       hold on
       plot(wb2d,'r')
       warn = 'DIFFERENT LAG RESULTS !!!  CHECK NEW ROUTINE';
@@ -701,10 +741,10 @@ if values.up==1
 
   disp(['    Shifting ADCP timeseries by ',num2str(lag),' ensembles']);
   disp(['    Time-lag: ',num2str(lag),' time steps    Correlation : ',num2str(co)])
-  if params.up2down==1
-    iu = iu(iiu);
-  else
+  if params.up2down==2
     id = id(iid);
+  else
+    iu = iu(iiu);
   end
 
   disp(['    Number of joint ensembles is : ',num2str(length(iu))]);

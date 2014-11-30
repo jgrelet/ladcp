@@ -25,27 +25,18 @@ if(nargin<2)
 end
 ax = gca;
 sibs = get(fig, 'Children');
-for i = 1:max(size(sibs))
-	if(strcmp(get(sibs(i),'Type'),'axes'))
-		if(strcmp(get(sibs(i),'Tag'),'Streamer'))
-				StreamerHand = sibs(i);
-		end
-	end
-end
-if (exist('StreamerHand','var')~=2)
-	figure(fig);
-	StreamerHand = axes('Units','normalized',...
-						'Position',[.1 .9 .8 .05],...
-						'Box','off',...
-						'Visible','off',...
-						'Tag','Streamer');
-	handle = get(gca,'Title');
-	set(handle,'Visible','On');
+ind = findobj(sibs,'Type','axes','Tag','Streamer');
+if isempty(ind)
+   StreamerHand = axes('Parent',fig,...
+                       'Units','normalized',...
+                       'Position',[.1 .9 .8 .05],...
+                       'Box','off',...
+                       'Visible','off',...
+                       'Tag','Streamer');
 else
-	handle = get(gca,'Title');
-	axes(StreamerHand);
+   StreamerHand = sibs(ind);
 end
-title(TitleString,'interpreter','none');
+title(TitleString,'interpreter','none','Visible','on',...
+                  'fontweight','bold','fontsize',16,...
+                  'parent',StreamerHand);
 axes(ax);
-
-set(handle,'fontweight','bold','fontsize',16);

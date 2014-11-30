@@ -103,6 +103,7 @@ if isfield(de,'type_constraints')
   ylabel('sum of weights')
   title('ocean velocity constraints')
   xlabel('depth [m]')
+  set(gca,'Xlim',[0 dr.z(end)+1]);
 
   subplot(212)
   simple_bar([1:size(de.ctd_constraints(ic,:),2)],de.ctd_constraints(ic,:),...
@@ -110,6 +111,7 @@ if isfield(de,'type_constraints')
   title('CTD velocity constraints')
   ylabel('sum of weights')
   xlabel('super ensemble')
+  set(gca,'Xlim',[0 size(de.ctd_constraints(ic,:),2)+1]);
 
   streamer([p.name,'  Figure 12']);
   hgsave('tmp/12')

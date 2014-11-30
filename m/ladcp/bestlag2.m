@@ -67,9 +67,9 @@ end
 % cross correlate data
 %
 if exist('xcorr')
-  [res,reslag] = xcorr(a1,a2,nlag);
+  [res,reslag] = xcorr(a1-mean(a1),a2-mean(a2),nlag);
 else
-  [res,reslag] = xcorr3(a1,a2,nlag);
+  [res,reslag] = xcorr3(a1-mean(a1),a2-mean(a2),nlag);
 end
 [dummy,resind] = nmax(res);
 reslag = reslag(resind);

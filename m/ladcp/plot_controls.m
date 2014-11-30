@@ -7,8 +7,8 @@ function [] = plot_controls(fig)
 
 global mh
 
-figure(2)
-figload(['tmp/',int2str(fig),'.fig'])
+figload(['tmp/',int2str(fig),'.fig'],2)
+
 figure(1)
 
 for n=1:length(mh)

@@ -200,7 +200,7 @@ year0=julian([p.ref_year,0,0,0,0,0]);
  end
  da.LADCP_dn_conf_general_comments='   ';
 
-if ~isempty(f.ladcpup)
+if isfield(d,'up')
 % up instrument information
 
  da.LADCP_up_hard_type=['[RDI-',int2str(d.up.Frequency),'BB]'];

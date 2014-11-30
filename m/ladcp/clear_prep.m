@@ -1,4 +1,4 @@
-function [] = clear_prep(stn)
+function [] = clear_prep(stn,ndigits)
 % function [] = clear_prep(stn)
 %
 % clear the MAT files from prepare_cast
@@ -9,10 +9,20 @@ function [] = clear_prep(stn)
 
 % G.Krahmann, IFM-GEOMAR, March 2006
 
-disp(' ')
-disp(['clear_prep : removing mat-files for station ',int2str(stn)])
+if nargin<2
+   ndigits = 3;
+end
 
-delete(['data/ctdprof/ctdprof',int2str0(stn,3),'.mat'])
-delete(['data/ctdtime/ctdtime',int2str0(stn,3),'.mat'])
-delete(['data/nav/nav',int2str0(stn,3),'.mat'])
-delete(['data/sadcp/sadcp',int2str0(stn,3),'.mat'])
+if ischar(stn)
+   stn_str = stn;
+else
+   stn_str = int2str0(stn,ndigits);
+end
+
+disp(' ')
+disp(['clear_prep : removing mat-files for station ',stn_str])
+
+delete(['data/ctdprof/ctdprof',stn_str,'.mat'])
+delete(['data/ctdtime/ctdtime',stn_str,'.mat'])
+delete(['data/nav/nav',stn_str,'.mat'])
+delete(['data/sadcp/sadcp',stn_str,'.mat'])

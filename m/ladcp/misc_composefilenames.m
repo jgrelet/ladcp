@@ -25,28 +25,15 @@ f.nav_dir         = 'data/nav';
 f.sadcp_dir       = 'data/sadcp';
 
 % file names
-stn_fmt         = '%03d';
-dn_file_fmt     = '%03dDN000.000';
-up_file_fmt     = '%03dUP000.000';
-f.ladcpdo = sprintf([f.raw_dir '/' stn_fmt '/' dn_file_fmt],stn,stn);
-if (~exist(f.ladcpdo,'file')) 
-  dn_file_fmt     = '%03ddn000.000';
-  f.ladcpdo = sprintf([f.raw_dir '/' stn_fmt '/' dn_file_fmt],stn,stn);
-end;
-f.ladcpup = sprintf([f.raw_dir '/' stn_fmt '/' up_file_fmt],stn,stn);
-if (~exist(f.ladcpup,'file')) 
-  up_file_fmt     = '%03dup000.000';
-  f.ladcpup = sprintf([f.raw_dir '/' stn_fmt '/' up_file_fmt],stn,stn);
-end;
-if ~isfield(f,'ladcpup') 
-  f.ladcpup = ''; 
-end;
+f.ladcpdo = [f.raw_dir '/' params.ladcp_station_name '/' params.ladcp_station_name 'DN000.000'];
+f.ladcpup = [f.raw_dir '/' params.ladcp_station_name '/' params.ladcp_station_name 'UP000.000'];
 
 
-f.nav = ['data/nav/nav',int2str0(stn,3),'.mat'];
-f.ctdprof = ['data/ctdprof/ctdprof',int2str0(stn,3),'.mat'];
-f.ctdtime = ['data/ctdtime/ctdtime',int2str0(stn,3),'.mat'];
-f.sadcp = ['data/sadcp/sadcp',int2str0(stn,3),'.mat'];
+f.nav = ['data/nav/nav',params.ladcp_station_name,'.mat'];
+f.ctdprof = ['data/ctdprof/ctdprof',params.ladcp_station_name,'.mat'];
+f.ctdtime = ['data/ctdtime/ctdtime',params.ladcp_station_name,'.mat'];
+f.sadcp = ['data/sadcp/sadcp',params.ladcp_station_name,'.mat'];
+
 
 % file name for results (extensions will be added by software)
 %  *.bot            bottom referenced ASCII data

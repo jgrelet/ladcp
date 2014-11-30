@@ -123,7 +123,7 @@ end
 %
 %  velocities are complex
 %
-d = di.ru+sqrt(-1)*di.rv;
+d = di.ru+1i*di.rv;
 d = reshape(d,nbin*nt,1);
 
 
@@ -131,7 +131,7 @@ d = reshape(d,nbin*nt,1);
 % bottom track velocity
 %
 if isfield(p,'zbottom');
-  bvel = di.bvel(1,:)+sqrt(-1)*di.bvel(2,:);
+  bvel = di.bvel(1,:)+1i*di.bvel(2,:);
   bvels = sqrt(di.bvels(1,:).^2+di.bvels(2,:).^2);
   if sum(ps.btrk_weight_nblen) > 0
 
@@ -190,16 +190,21 @@ else
   wm  = weight_matrix_supens_std_based;
 
 end
-figload('tmp/16.fig',2)
+%figload('tmp/16.fig',2)
 subplot(3,1,3);
-imagesc(weight_matrix_supens_std_based);
+bin_no = [-length(di.izu):-1 0 1:length(di.izd)];
+imagesc([1:size(weight_matrix_supens_std_based,2)],bin_no,...
+        [weight_matrix_supens_std_based(1:length(di.izu),:); ...
+         ones(1,size(weight_matrix_supens_std_based,2))*NaN; ...
+         weight_matrix_supens_std_based(end-length(di.izd)+1:end,:)...
+        ]);
 csc = caxis;
 colorbar
 xlabel('Super Ensemble #');
 ylabel('Bin #');
 title('Weights based on standard deviation of super ensembles')
 
-streamer([p.name,' Figure 16']);
+drawnow
 hgsave('tmp/16')
 
 wm = reshape(wm,nt*nbin,1);
@@ -219,7 +224,7 @@ if isfinite(sum(slon+slat))
   yship = (slat-slat(1))*60*1852;
   uship = diff(xship)./diff(tim)/(86400);
   vship = diff(yship)./diff(tim)/(86400);
-  shipvel = uship+sqrt(-1)*vship;
+  shipvel = uship+1i*vship;
   shipvel = mean([shipvel([1,1:end]);shipvel([1:end,end])]);
   % get a smooth ship surface velocity
   tim1 = tim-tim(1);
@@ -235,7 +240,7 @@ if isfinite(sum(slon+slat))
   end
 else
   % no GPS ship navigation time series, assume constant ship velocity
-  uship_a = values.uship+sqrt(-1)*values.vship;
+  uship_a = values.uship+1i*values.vship;
   shipvel = uship_a+di.z*0;
 end
 
@@ -251,7 +256,7 @@ if ps.dragfac>0
     % compute the ocean flow at the depth of the CTD
     ut = interp1(dr.z,dr.u,-di.z);
     vt = interp1(dr.z,dr.v,-di.z);
-    shipdragvel = shipvel-(ut+sqrt(-1)*vt);
+    shipdragvel = shipvel-(ut+1i*vt);
   end
   % derive estimate for CTD velocity using ship velocity
   % and vertical velocity and wireangle
@@ -489,7 +494,7 @@ de.type_constraints = [de.type_constraints;'Ship ADCP '];
 % add barotropic constraint 
 % check if position data exist 
 %
-uship_a = values.uship+sqrt(-1)*values.vship;
+uship_a = values.uship+1i*values.vship;
 if (abs(uship_a)==0 & values.lat==0 & values.lon==0) |...
 	 ~isfinite(values.lon+values.lat)
   disp('    No position data ');
@@ -1001,7 +1006,7 @@ end
 % extract finite SADCP velocities and store in variables
 %
 zsadcp = abs(svel(:,1));
-dsadcp = svel(:,2)+sqrt(-1)*svel(:,3);
+dsadcp = svel(:,2)+1i*svel(:,3);
 ind = find(isfinite(dsadcp));
 zsadcp = zsadcp(ind);
 dsadcp = dsadcp(ind);

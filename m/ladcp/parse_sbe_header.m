@@ -36,9 +36,18 @@ end
 %
 % parse Seabird header
 %
-hdr.nmea_lat_str = extract_string('* NMEA Latitude =',hdr1);
-hdr.nmea_lon_str = extract_string('* NMEA Longitude =',hdr1);
-hdr.nmea_utc_str = extract_string('* NMEA UTC (Time) =',hdr1);
+hdr.nmea_lat_str = extract_string('**  NMEA Latitude =',hdr1);
+if isempty(hdr.nmea_lat_str)
+   hdr.nmea_lat_str = extract_string('* NMEA Latitude =',hdr1);
+end
+hdr.nmea_lon_str = extract_string('**  NMEA Longitude =',hdr1);
+if isempty(hdr.nmea_lon_str)
+   hdr.nmea_lon_str = extract_string('* NMEA Longitude =',hdr1);
+end
+hdr.nmea_utc_str = extract_string('**  NMEA UTC (Time) =',hdr1);
+if isempty(hdr.nmea_utc_str)
+   hdr.nmea_utc_str = extract_string('* NMEA UTC (Time) =',hdr1);
+end
 hdr.lat = extract_string('** Latitude :',hdr1);
 hdr.lon = extract_string('** Longitude :',hdr1);
 hdr.station = extract_string('** Station :',hdr1);
@@ -53,6 +62,7 @@ if ~isempty(hdr.bad_flag)
   hdr.bad_flag = str2num(hdr.bad_flag);
 end
 hdr.system_upload = extract_string('* System UpLoad Time =',hdr1);
+hdr.start_time    = extract_string('# start_time =',hdr1);
 if isempty(hdr.nmea_lat_str)
   hdr.nmea_lat = [];
   hdr.nmea_lon = [];
@@ -66,18 +76,18 @@ end
 %
 % parse System Upload Time
 %
-strs = {'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'};
-dat = hdr.system_upload;
-%dummy(2) = strmatch(dat(1:3),strs);
-%dummy(1) = sscanf(dat(8:11),'%d')';
-%dummy(3) = sscanf(dat(5:6),'%d')';
-%dummy(4) = sscanf(dat(13:14),'%d')';
-%dummy(5) = sscanf(dat(16:17),'%d')';
-%dummy(6) = sscanf(dat(19:20),'%d')';
-dummy = datevec(dat,'mmm dd yyyy HH:MM:SS');
+hdr.system_upload = hdr.system_upload(1:20);
+dummy = datevec(hdr.system_upload,'mmm dd yyyy HH:MM:SS');
 hdr.system_upload_datenum = datenum(dummy);
 hdr.system_upload_sbe_doy = datenum(dummy.*[1,1,1,0,0,0])-datenum(dummy.*[1,0,0,0,0,0]);
 
+%
+%  parse System Start Time
+%
+hdr.start_time = hdr.start_time(1:20);
+dummy = datevec(hdr.start_time,'mmm dd yyyy HH:MM:SS');
+hdr.start_time_datenum = datenum(dummy);
+hdr.start_time_doy = datenum(dummy.*[1,1,1,0,0,0])-datenum(dummy.*[1,0,0,0,0,0]);
 
 %
 % figure out the information to use for CTD's position and start
@@ -127,73 +137,6 @@ for n=0:30
     %
     hdr = setfield(hdr,['name',int2str(n)],...
           extract_string(['# name ',int2str(n),' ='],hdr1));
-
-if 0
-    %
-    % extract the data for
-    fld = getfield(hdr,['name',int2str(n)]);
-
-    %
-    % check whether the new variable is a standard one
-    % if so, extract the data
-    %
-    if ~isempty(findstr(fld,'prDM'))
-        data.p = data1(:,n+1);
-    elseif ~isempty(findstr(fld,'sal00'))
-        data.s_pri = data1(:,n+1);
-    elseif ~isempty(findstr(fld,'sal11'))
-        data.s_sec = data1(:,n+1);
-    elseif ~isempty(findstr(fld,'t090C'))
-        data.t_pri = data1(:,n+1);
-    elseif ~isempty(findstr(fld,'t190C'))
-        data.t_sec = data1(:,n+1);
-    elseif ~isempty(findstr(fld,'c0S/m'))
-        data.c_pri = data1(:,n+1);
-    elseif ~isempty(findstr(fld,'c1S/m'))
-        data.c_sec = data1(:,n+1);
-    elseif ~isempty(findstr(fld,'sbeox0ML/L'))
-        data.o_pri = data1(:,n+1);
-        mll_pri = 1;
-    elseif ~isempty(findstr(fld,'sbeox1ML/L'))
-        data.o_sec = data1(:,n+1);
-        mll_sec = 1;
-    elseif ~isempty(findstr(fld,'sbeox0V'))
-        data.o_v_pri = data1(:,n+1);
-    elseif ~isempty(findstr(fld,'sbeox1V'))
-        data.o_v_sec = data1(:,n+1);
-    elseif ~isempty(findstr(fld,'sbeox0dO'))
-        data.o_dvdt_pri = data1(:,n+1);
-    elseif ~isempty(findstr(fld,'sbeox1dO'))
-        data.o_dvdt_sec = data1(:,n+1);
-    elseif ~isempty(findstr(fld,'timeJ'))
-        data.timej = data1(:,n+1);
-    elseif ~isempty(findstr(fld,'pumps'))
-        data.pumps = data1(:,n+1);
-        % 
-        % here we turn off the pump 20 scans earlier than in
-        % in the raw data, as the 'out of water' recognition reacts
-        % late and thus often has wrong conductivities when the
-        % CTD is already out of the water
-        % 
-        ind = find(data.pumps(1:end-1)==1 & data.pumps(2:end)==0);
-        if ~isempty(ind) 
-          if ind(end)>20
-            data.pumps(ind(end)+[-20:0]) = 0;
-          end
-        end  
-    elseif ~isempty(findstr(fld,'scan'))
-        data.scan = data1(:,n+1);
-    elseif ~isempty(findstr(fld,'latitude'))
-        data.latitude = data1(:,n+1);
-    elseif ~isempty(findstr(fld,'longitude'))
-        data.longitude = data1(:,n+1);
-    elseif ~isempty(findstr(fld,'flag'))
-        data.flag = data1(:,n+1);
-    elseif ~isempty(findstr(fld,'haardtC'))
-        data.haardtc = data1(:,n+1);
-    end
-
-end
 
 end
 
@@ -387,17 +330,12 @@ if isfield(hdr,'nmea_lon_str')
     hdr.nmea_lon = -dummy(1)-dummy(2)/60;
   end
 end
-if isfield(hdr,'nmea_utc_str')
-  strs = {'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'};
+if isfield(hdr,'nmea_utc_str') & length(hdr.nmea_utc_str)>=20
   dat = hdr.nmea_utc_str;
-  if ~strcmp(dat,'none')
-    dummy = datevec(dat,'mmm dd yyyy HH:MM:SS');
-    hdr.nmea_utc_datenum = datenum(dummy);
-    hdr.nmea_utc = dummy;
-  else
-    hdr.nmea_utc_datenum = nan;
-    hdr.nmea_utc = '';
-  end
+  dummy = datevec(dat,'mmm dd yyyy HH:MM:SS');
+  hdr.nmea_utc_datenum = datenum(dummy);
+  hdr.nmea_utc = dummy;
+else
+  hdr.nmea_utc_datenum = [];
+  hdr.nmea_utc = [];
 end
-
-
