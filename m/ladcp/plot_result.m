@@ -46,7 +46,7 @@ end
 %
 % plot final absolute velocity
 %
-figure(2)
+sfigure(2);
 clf
 axes('position',[0.1 0.23 0.4 0.7])
 plot(ua*100,-z,'-r','linewidth',2.5)

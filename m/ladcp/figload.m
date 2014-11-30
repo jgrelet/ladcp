@@ -11,7 +11,7 @@ function [] = figload(file,fig);
 % input  :  file        - filename with a figure stored in it
 %           fig	[gcf]   - optional figure handle
 %
-% version 0.5	last change 31.05.2011
+% version 0.6	 last change 16.11.2012
 
 % G.Krahmann, LDEO Oct 2004
 
@@ -19,6 +19,7 @@ function [] = figload(file,fig);
 % changed exist commands                     GK	 12.09.2007  0.2-->0.3
 % work-around for newer Matlab versions      GK  15.07.2008  0.3-->0.4
 % adapted to higher version numbers          GK, 31.05.2011  0.4-->0.5
+% use sfigure instead of figure              GK, 16.11.2012  0.5-->0.6
 
 % parse arguments
 if nargin<2
@@ -43,7 +44,7 @@ if exist(file,'file')
   v2 = str2num(vv(ind(1)+1:ind(2)-1));
   if v1>=7 & v2>3
 
-    figure(2)
+    sfigure(2);
     clf
     % some code 'taken' from importfig.m at mathworks user site
     ImportFig=hgload(file,struct('visible','off'));
@@ -80,7 +81,7 @@ end
 if prod(size(s))==1
   if strcmp(s.type,'figure')
     if gcf~=fig
-      figure(fig);
+      sfigure(fig);
     end
     clf
     s.properties = rmfield(s.properties,'ApplicationData');

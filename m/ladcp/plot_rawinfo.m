@@ -3,17 +3,18 @@ function plotraw(d,params,values)
 %
 % plot some results
 %
-% version 0.3	last change 20.05.2011
+% version 0.4	last change 16.11.2012
 
 % M.Visbeck, G.Krahmann, IFM-GEOMAR
 
-% wrong bins picked looking for broken beam	                   GK, Sep 2007	0.1-->0.2
-% add colors to identify beam performance, more comments       GK, 20.05.2011  0.2-->0.3 
+% wrong bins picked looking for broken beam	              GK, Sep 2007	0.1-->0.2
+% add colors to identify beam performance, more comments  GK, 20.05.2011  0.2-->0.3 
+% use sfigure instead of figure                           GK, 16.11.2012  0.3-->0.4
 
 %
 % open and clear figure
 %
-figure(2)
+sfigure(2);
 clf
 orient tall
 
@@ -53,10 +54,10 @@ if length(iz)>1
   dzu = nmedian(diff(d.zu));
   zz = [zz;-z(iz)];
   dz = [dz,iz*0+dzu];
-  rw = [rw;d.rw(iz,ind)+d.weight(iz,ind)*0];
+  rw = [rw;d.raw_w(iz,ind)+d.weight(iz,ind)*0];
   % check for 3-beam solutions
-  iw = sum(~isnan(d.rw(iz,ind)));
-  ie = sum(~isnan(d.re(iz,ind)));
+  iw = sum(~isnan(d.raw_w(iz,ind)));
+  ie = sum(~isnan(d.raw_e(iz,ind)));
   i3bu = find(iw>(2*ie));
   n3bu = length(i3bu)/length(ind)*100;
 end
@@ -65,10 +66,10 @@ if length(iz)>1
   dzd = nmedian(diff(d.zd));
   zz = [zz;-z(iz)];
   dz = [dz,iz*0+dzd];
-  rw = [rw;d.rw(iz,ind)+d.weight(iz,ind)*0];
+  rw = [rw;d.raw_w(iz,ind)+d.weight(iz,ind)*0];
   % check for 3-beam solutions
-  iw = sum(~isnan(d.rw(iz,ind)));
-  ie = sum(~isnan(d.re(iz,ind)));
+  iw = sum(~isnan(d.raw_w(iz,ind)));
+  ie = sum(~isnan(d.raw_e(iz,ind)));
   i3bd = find(iw>(2*ie));
   n3bd = length(i3bd)/length(ind)*100;
 end

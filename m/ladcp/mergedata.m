@@ -17,12 +17,13 @@ function [data,params,messages,values] = mergedata(data,params,messages,values)
 %           messages  - array of warnings
 %           values    - LADCP values structure
 %
-% version 0.3	last change 20.05.2011
+% version 0.4	last change 17.01.2013
 
 % G.Krahmann, LDEO Nov 2004
 
 % added possibility to use SADCP nav data     GK, Jul 2007    0.1-->0.2
 % renamed besttlag to calc_adcp_ctd_lag       GK, 20.05.2011  0.2-->0.3
+% new parameter params.forced_adcp_ctd_lag    GK, 17.01.2013  0.3-->0.4
 
 % Merging LADCP data with other data is always tricky since the internal
 % LADCP and the LADCP-startup-computer clocks tend to drift. If there is
@@ -260,11 +261,19 @@ if ~isempty(data.ctdtime_data)
     ctdtw = [data.ctdtime_time, wctd];
     adcptw = [data.time_jul', w'];
 
-    [lag,co] = calc_adcp_ctd_lag(ctdtw,adcptw,params.ctdmaxlag,params.ctdmaxlagnp);
-    lagdt = -lag*dtctd;
-    disp(['    Best W lag at: ',int2str(lag),' CTD scans ~',...
+    if isfield(params,'forced_adcp_ctd_lag')
+      lag = params.forced_adcp_ctd_lag;
+      lagdt = -lag*dtctd;
+      co = nan;
+      disp(['    Forcing W lag at: ',int2str(lag),' CTD scans ~',...
+           int2str(lagdt*24*3600)]);
+    else
+      [lag,co] = calc_adcp_ctd_lag(ctdtw,adcptw,params.ctdmaxlag,params.ctdmaxlagnp);
+      lagdt = -lag*dtctd;
+      disp(['    Best W lag at: ',int2str(lag),' CTD scans ~',...
            int2str(lagdt*24*3600),' seconds  corr:',num2str(co)]);
-
+    end
+    
     %
     % reinterpolate w from the CTD onto the LADCP timing
     %

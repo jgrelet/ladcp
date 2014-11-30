@@ -10,13 +10,14 @@
 %             the data
 % structure ps.??? contains parameter for the solution
 %
-% version 0.4  last change 07.03.2012
+% version 0.5  last change 14.02.2013
 
 % changed handling of cruise_id              GK, 20.05.2011  0.1-->0.2
 % new parameter to fully remove bins         GK, 29.08.2011  0.2-->0.3
 % new parameter to force resampling          GK, 07.03.2012  0.3-->0.4
+% new parameter to handle wrong clocks       GK, 14.02.2013  0.4-->0.5
 
-params.software = 'GEOMAR LADCP software: Version 10.14: 2012-07-13';
+params.software = 'GEOMAR LADCP software: Version 10.16: 2013-02-14';
 
 
 %
@@ -44,6 +45,7 @@ if exist('logs')==7
   params.name = [params.name,'_',int2str0(stn,3)];
 end
 
+if 0
 
 % directory names
 f.logs_dir        = 'logs';
@@ -86,6 +88,7 @@ while exist(f.ladcpdo(end,:),'file')
   end
 end
 count = 1;
+keyboard
 while exist(f.ladcpup(end,:),'file')
   nname = f.ladcpup(end,:);
   nname(end-[6:-1:4]) = int2str0(count,3);
@@ -110,6 +113,8 @@ f.sadcp = ['data/sadcp/sadcp',int2str0(stn,3),'.mat'];
 %  *.log            ASCII log file of processing
 %  *.txt            ASCII short log file
 %  *.ps             post-script figure of result 
+end
+
 
 %--------------------------------------------------------------
 % Parameter for loading and primary error check  p.* structure
@@ -348,6 +353,13 @@ params.ctdmaxlag = 150;
 params.ctdmaxlagnp = 600;
 
 
+%
+% set forced_adcp_ctd_lag in case the built-in routine does not
+% properly recognize the lag
+% usually this is not set at all
+%
+% params.forced_adcp_ctd_lag;
+
 % save individual target strength p.ts_save=[1 2 3 4]
 params.ts_save = 0;
 % save individual correlation p.cm_save=[1 2 3 4]
@@ -433,6 +445,22 @@ params.tilt_weight = 10;
 % will be handled by the data shifting of the slave.
 %
 params.timoff = 0;
+
+
+%
+% fix time of uplooking ADCP relative to downlooking ADCP
+% e.g. when the clocks were never properly set
+%
+% Usually that is taken care of by the automatic shifting.
+% But this will fail when the uplooking system apparently start
+% before the downlooking one, but in reality starts later.
+%
+% In that case you can shift the uplooking data to later
+% times by giving a positive number. Units are days.
+% There will be a paused control plot to compare the vertical
+% velicities.
+%
+params.timoff_uplooker = 0;
 
 
 %

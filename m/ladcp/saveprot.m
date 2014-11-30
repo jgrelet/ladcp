@@ -1,23 +1,23 @@
 % save a processing protocol sheet for LADCP profiles
 
 disp(' ')
-disp(['    Writing processing protocol ',f.res,'.txt'])
+disp(['    Writing processing protocol ',files.res,'.txt'])
 
 % open file
-fid = fopen([f.log,'.txt'],'wt');
+fid = fopen([files.log,'.txt'],'wt');
 
 fprintf(fid,'    LADCP processing protocol \n',[]);
 fprintf(fid,' \n',[]);
 fprintf(fid,'Station name         : %s \n',p.name);
 fprintf(fid,' \n',[]);
 fprintf(fid,'LADCP input files    : \n',[]);
-if isfield(f,'ladcpdo')
-  fprintf(fid,'down                 : %s \n',f.ladcpdo);
+if isfield(files,'ladcpdo')
+  fprintf(fid,'down                 : %s \n',files.ladcpdo);
 else
   fprintf(fid,'down                 : %s \n','none');
 end
-if isfield(f,'ladcpup')
-  fprintf(fid,'up                   : %s \n',f.ladcpup);
+if isfield(files,'ladcpup')
+  fprintf(fid,'up                   : %s \n',files.ladcpup);
 else
   fprintf(fid,'up                   : %s \n','none');
 end

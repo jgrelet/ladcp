@@ -4,26 +4,26 @@ function [data,params,values,messages] = improve(data,params,values,messages)
 % improve the data
 % fix all kinds of errors and problems, apply rotations, etc.
 %
-% input  :	data		- LADCP data structure
-%		params		- LADCP parameter structure
-%		values		- LADCP value structure
-%		messages	- array of warnings
+% input  :  data      - LADCP data structure
+%           params    - LADCP parameter structure
+%           values    - LADCP value structure
+%           messages  - array of warnings
 %
-% output :	data		- modified LADCP data structure
-%		params		- LADCP parameter structure
-%		values		- modified LADCP value structure
-%		messages	- array of warnings
+% output :  data      - modified LADCP data structure
+%           params    - LADCP parameter structure
+%           values    - modified LADCP value structure
+%           messages  - array of warnings
 %
-% version 0.6	last change 29.08.2011
+% version 0.7  last change 05.11.2012
 
 % G.Krahmann, LDEO Nov 2004
 
-% added time dependence in magdev		GK, Mar 2007  	0.1-->0.2
-% error check for empty raw data		GK, Aug 2007  	0.2-->0.3
-% threw out too much wlim data			GK, Sep 2007	0.3-->0.4
-% stop processing, if too many tilt>tiltmax	GK, Sep 2007	0.4-->0.5
-% typo                                      GK, 29.08.2011  0.5-->0.6
-
+% added time dependence in magdev            GK, Mar 2007    0.1-->0.2
+% error check for empty raw data             GK, Aug 2007    0.2-->0.3
+% threw out too much wlim data               GK, Sep 2007    0.3-->0.4
+% stop processing, if too many tilt>tiltmax  GK, Sep 2007    0.4-->0.5
+% typo                                       GK, 29.08.2011  0.5-->0.6
+% replaced tabs with spaces                  GK, 05.11.2012  0.6-->0.7
 
 %
 % general function start info

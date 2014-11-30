@@ -1,5 +1,45 @@
 Development history
 
+Changes in 10.16
+
+- process_cast.m  GK
+  save full mat file information 
+  the parameter existed, but it was not implemented
+
+- merge_data.m, default_params.m  GK
+  new parameter  params.forced_adcp_ctd_lag
+  can be used if the built-in routine does not properly recognize the lag  
+
+- read_sbe_cnv.m  GK
+  new variables and handling of special cases
+
+- rdiload.m  default_params.m  GK
+  params.timoff_uplooker
+  with this one a time offset between up and downlooker can be corrected
+  
+Changes in 10.15
+
+- get_err.m  GK
+  Fixed a problem with the extrapolation of u-ctd. Don't know whether the
+  extrapolation was ever necessary, but the way I ensured no interpolation 
+  problems was by itself problematic and lead to too high error estimates 
+  near the surface. These were very obvious in the error plots (uocean) of
+  shallow profiles.
+
+- process_cast.m  GK
+  add argument to suppress saving of plots
+  this speeds up testing of parameters
+
+- default_params.m  misc_composefilenames.m  rdiload.m  GK
+  moved file name and directory composition from default_params.m
+  to misc_compose_filenames.m
+  moved check for multiple files to rdiload.m
+  This fixes a bug where multiple 000 files were only recognized when
+  process_cast was run a second time.
+
+- rdiload.m  GK
+  changed warning/display of 3-beam solutions   
+
 Changes in 10.14
 
 - calc_depth.m  GK

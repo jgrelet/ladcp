@@ -6,21 +6,41 @@ function l = geterr(dr,d,p,iplot)
 % 
 % CTD velocity
 %
-% version 0.2  last change 08.11.2009
+% version 0.3  last change 10.11.2012
 
-% replaced finite with isfinite                                   GK, 08.11.2009    -->0.2
-
+% replaced finite with isfinite                   GK, 08.11.2009     -->0.2
+% fixed problem with uctd extrapolation           GK, 10.11.2012  0.2-->0.3
 
 if nargin<4
   iplot=1; 
 end
 
-tim = dr.tim;
-tim(1) = -1e30;
-tim(end) = 1e30;
 
-uctd = -interp1q(tim',dr.uctd',d.time_jul');
-vctd = -interp1q(tim',dr.vctd',d.time_jul');
+%
+% make sure that we do no interpolate beyond the values we have
+%
+tim = dr.tim;
+uctd1 = dr.uctd;
+vctd1 = dr.vctd;
+if min(d.time_jul)<tim(1) | max(d.time_jul)>tim(end)
+  disp('>   uctd timing interpolation problem')
+  disp('>   using constant uctd to extrapolate')
+  if min(d.time_jul)<tim(1)
+    tim = tim([1,1:end]);
+    tim(1) = min(d.time_jul);
+    uctd1 = uctd1([1,1:end]);
+    vctd1 = vctd1([1,1:end]);
+  end
+  if max(d.time_jul)<tim(end)
+    tim = tim([1:end,end]);
+    tim(end) = max(d.time_jul);
+    uctd1 = uctd1([1:end,end]);
+    vctd1 = vctd1([1:end,end]);
+  end
+end
+uctd = -interp1q(tim',uctd1',d.time_jul');
+vctd = -interp1q(tim',vctd1',d.time_jul');
+
 
 [ib,it] = size(d.ru);
 

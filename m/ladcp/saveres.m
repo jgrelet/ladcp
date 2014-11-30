@@ -1,19 +1,34 @@
-function []=saveres(dr,p,ps,f,values)
-% function []=saveres(dr,p,ps,f,values)
+function []=saveres(data,dr,p,ps,f,values)
+% function []=saveres(data,dr,p,ps,f,values)
 %
 % store LADCP result in RODB format
+% and store some other info as mat file
 %
-% version 0.6	last change 18.06.2008
+% version 0.7	 last change 16.11.2012
 
-% changed values stored as lat/lon      G.K.    May 2007	0.2_->0.3
-% modified version id			GK	Jun 2007	0.3_->0.4
-% change save command			GK	Aug 2007	0.4-->0.5
-% added some header info		GK	Jun 2008	0.5-->0.6
+% changed values stored as lat/lon            G.K. May 2007   0.2-->0.3
+% modified version id                         GK  Jun 2007    0.3-->0.4
+% change save command                         GK  Aug 2007    0.4-->0.5
+% added some header info                      GK  Jun 2008    0.5-->0.6
+% write target strength info into mat file    GK, 16.11.2012  0.6-->0.7
+
+%
+% extract some target strength data and transmit voltage
+%
+ts.dn.ts = data.ts_edited(data.izd(3),:);
+ts.dn.z = data.z-data.zd(3);
+ts.dn.xmv = data.xmv(1,:);
+if values.up==1
+  ts.up.ts = data.ts_edited(data.izu(3),:);
+  ts.up.z = data.z+data.zu(3);
+  ts.up.xmv = data.xmv(2,:);
+end
+
 
 %
 % store some results as a MAT file
 %
-save6([f.res,'.mat'],'dr','p','ps','f')
+save6([f.res,'.mat'],'ts','dr','p','ps','f')
 
 
 %

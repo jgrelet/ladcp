@@ -1,10 +1,11 @@
 % initialize the plot menu for LADCP processing
 %
-% version 0.3	last change 15.07.2008
+% version 0.4	last change 16.11.2012
 
 % G.Krahmann, IFM-GEOMAR, 2004
 
-% changed location of windows for OSX     GK, 15.07.2008   0.2--0.3
+% changed location of windows for OSX     GK, 15.07.2008  0.2-->0.3
+% use sfigure instead of figure           GK, 16.11.2012  0.3-->0.4
 
 dd = dir('tmp/*.fig');
 for n=1:length(dd)
@@ -21,17 +22,17 @@ end
 
 % create 2 windows
 % one for the control menu and one for the actual plots
-figure(1)
+sfigure(1);
 clf
 set(gcf,'position',[10,10+imac*100,170,750],'numbertitle','off','menubar',...
 	'none','name','LADCP 1');
-figure(2)
+sfigure(2);
 clf
 set(gcf,'position',[190,10+imac*100,800,696],'numbertitle','off',...
 	'name','LADCP 2');
 
 % create the menu
-figure(1)
+sfigure(1);
 fh(1) = uicontrol('style','frame','position',[10,10,150,600]);
 fh(2) = uicontrol('style','frame','position',[10,620,150,120]);
 

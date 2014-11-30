@@ -3,15 +3,16 @@ function d = edit_data(d,p,values)
 %
 % perform data editing (e.g. sidelobes, previous-ping interference, &c)
 %
-% version 0.6	last change 13.07.2012
+% version 0.7	last change 16.11.2012
 
 % original A.Thurnherr/M.Visbeck
 
-% changed sidelobe application bins                    GK, Sep 2007    0.1-->0.2
-% introduced masking of the last bin                   GK, Mar 2008    0.2-->0.3
-% moving maxbinrange to here                           GK, 24.07.2008  0.3-->0.4
-% more than last bin masking                           GK, 13.05.2011  0.4-->0.5
-% renamed cosd and sind to cos_d and sin_d             GK, 13.07.2012  0.5-->0.6
+% changed sidelobe application bins               GK, Sep 2007    0.1-->0.2
+% introduced masking of the last bin              GK, Mar 2008    0.2-->0.3
+% moving maxbinrange to here                      GK, 24.07.2008  0.3-->0.4
+% more than last bin masking                      GK, 13.05.2011  0.4-->0.5
+% renamed cosd and sind to cos_d and sin_d        GK, 13.07.2012  0.5-->0.6
+% use sfigure instead of figure                   GK, 16.11.2012  0.6-->0.7   
 
 %
 % general function info
@@ -237,6 +238,7 @@ if p.edit_mask_last_bin(1)~=0
   
   nbad = 0;
   dummy = d.weight;
+if 0
   for n=1:size(d.weight,2)
 %    ind = find(~isnan(d.weight(:,n)));
     ind = find(d.weight(:,n)>0);
@@ -259,6 +261,34 @@ if p.edit_mask_last_bin(1)~=0
       end
     end
   end
+else
+  if mask_up>0
+    mask = d.weight(d.izu,:)*0+1;
+    for n=1:size(mask,2)
+      ind = find(~isnan(mask(:,n)));
+      if ~isempty(ind)
+        ind = ind - mask_up;
+        if ind>0
+          mask(ind+1:end,n) = nan;
+        end
+      end
+    end
+    d.weight(d.izu,:) = d.weight(d.izu,:).*mask;
+  end
+  if mask_dn>0
+    mask = d.weight(d.izd,:)*0+1;
+    for n=1:size(mask,2)
+      ind = find(~isnan(mask(:,n)));
+      if ~isempty(ind)
+        ind = ind - mask_up;
+        if ind>0
+          mask(ind+1:end,n) = nan;
+        end
+      end
+    end
+    d.weight(d.izd,:) = d.weight(d.izd,:).*mask;
+  end
+end
   nbad = length(find(isnan(dummy)-isnan(d.weight)));
 
   disp(sprintf('    Last Bin masking           : set %d weights to NaN',nbad));
@@ -348,7 +378,7 @@ if length(d.zd) > 0
   bin_no = [bin_no 1:length(d.zd)]; 
 end
 
-figure(2)
+sfigure(2);
 clf;
 orient landscape;
 colormap([[1 1 1]; jet(128)]);
@@ -384,7 +414,7 @@ hgsave('tmp/14')
 ind = find(isnan(d.ts_edited));
 d.cm_edited = d.cm;
 d.cm_edited(ind) = nan;
-figure(2)
+sfigure(2);
 clf;
 orient landscape;
 colormap([[1 1 1]; jet(128)]);

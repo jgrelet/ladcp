@@ -345,8 +345,8 @@ dr.lon = values.lon;
 
 % set up main matrices for inversion
 A1 = lainseta(jprof,1);
-A2 = lainseta(izv,ps.dz);
-[nt,nz] = size(A2);
+Aocean = lainseta(izv,ps.dz);
+[nt,nz] = size(Aocean);
 
 % resulting depth vector
 %z =([1:nz]'-.5)*ps.dz;
@@ -354,21 +354,21 @@ z = [1:nz]'*ps.dz;
 
 
 A1o = A1;
-A2o = A2;
+A2o = Aocean;
 do = d;
 
 %### add weights to data
-[A2,A1,d,idoc,iupc] = lainweig(A2,A1,d,wm);
+[Aocean,A1,d,idoc,iupc] = lainweig(Aocean,A1,d,wm);
 
 
 %
 % make sure time and depth dimension are different
 %
-if size(A2,2)==size(A1,2)
+if size(Aocean,2)==size(A1,2)
   disp('    Changing dimension of A2')
-  A2 = [A2,A2(:,1)*0]; 
+  Aocean = [Aocean,Aocean(:,1)*0]; 
   A2o = [A2o,A2o(:,1)*0];
-  [nt,nz] = size(A2);
+  [nt,nz] = size(Aocean);
   z = [1:nz]'*ps.dz;
 end
 
@@ -376,7 +376,7 @@ end
 %
 % save constraints
 %
-de.ocean_constraints = full(sum(abs(A2)));
+de.ocean_constraints = full(sum(abs(Aocean)));
 de.ctd_constraints = full(sum(abs(A1)));
 de.type_constraints = 'Velocity  ';
 
@@ -385,13 +385,13 @@ de.type_constraints = 'Velocity  ';
 % smooth ocean and CTD velocity profiles
 %
 disp('    Smoothing Ocean velocity profile')
-[A2,A1,d] = lainsmoo(A2,A1,d,ps.smoofac);
- 
+[Aocean,A1,d] = lainsmoo(Aocean,A1,d,ps.smoofac);
+
 disp('    Smoothing CTD velocity profile')
-[A1,A2,d] = lainsmoo(A1,A2,d,ps.smoofac);
+[A1,Aocean,d] = lainsmoo(A1,Aocean,d,ps.smoofac);
 
 de.ocean_constraints = [de.ocean_constraints;...
-	sum(abs(A2))-(de.ocean_constraints)];
+	sum(abs(Aocean))-(de.ocean_constraints)];
 de.ctd_constraints = [de.ctd_constraints;sum(abs(A1))-(de.ctd_constraints)];
 de.type_constraints = [de.type_constraints;'Smoothing '];
 
@@ -402,7 +402,7 @@ de.type_constraints = [de.type_constraints;'Smoothing '];
 if exist('bvel','var')
   if sum(isfinite(bvel))>0 
     btweight = ps.velerr./bvels;
-    [A2,A1,d,ubot,iubot] = lainbott(dbot.*wm,bvel,btweight,A2,A1,d,ps.botfac);
+    [Aocean,A1,d,ubot,iubot] = lainbott(dbot.*wm,bvel,btweight,Aocean,A1,d,ps.botfac);
     if length(ubot)>0
       dr.zbot = z(iubot);
       dr.ubot = real(ubot(:,1));
@@ -434,7 +434,7 @@ else
 end
 
 de.ocean_constraints = [de.ocean_constraints;...
-	sum(abs(A2))-sum(de.ocean_constraints)];
+	sum(abs(Aocean))-sum(de.ocean_constraints)];
 de.ctd_constraints = [de.ctd_constraints;sum(abs(A1))-sum(de.ctd_constraints)];
 de.type_constraints = [de.type_constraints;'Bottomtrk '];
 
@@ -444,8 +444,8 @@ de.type_constraints = [de.type_constraints;'Bottomtrk '];
 %
 if ~isempty(di.svel)
   if sum(isfinite(di.svel(:,1)))>2 
-    [p,A2,A1,d,ds,messages] =...
-            lainsadcp(p,di.svel,A2,A1,d,ps.dz,ps.sadcpfac,ps.velerr,messages);
+    [p,Aocean,A1,d,ds,messages] =...
+            lainsadcp(p,di.svel,Aocean,A1,d,ps.dz,ps.sadcpfac,ps.velerr,messages);
     if length(ds.z_sadcp)>1
       dr.z_sadcp = di.svel(:,1);
       dr.u_sadcp = di.svel(:,2);
@@ -480,7 +480,7 @@ else
 end
 
 de.ocean_constraints = [de.ocean_constraints;...
-	sum(abs(A2))-sum(de.ocean_constraints)];
+	sum(abs(Aocean))-sum(de.ocean_constraints)];
 de.ctd_constraints = [de.ctd_constraints;sum(abs(A1))-sum(de.ctd_constraints)];
 de.type_constraints = [de.type_constraints;'Ship ADCP '];
 
@@ -508,22 +508,22 @@ if ps.barofac>0
   if ~isfinite(fac) 
     fac = 1; 
   end
-  [A2,A1,d] = lainbaro(A2,A1,d,uship_a,dtiv,ps.barofac*fac);
+  [Aocean,A1,d] = lainbaro(Aocean,A1,d,uship_a,dtiv,ps.barofac*fac);
 end
 
 de.ocean_constraints = [de.ocean_constraints;...
-	sum(abs(A2))-sum(de.ocean_constraints)];
+	sum(abs(Aocean))-sum(de.ocean_constraints)];
 de.ctd_constraints = [de.ctd_constraints;sum(abs(A1))-sum(de.ctd_constraints)];
 de.type_constraints = [de.type_constraints;'GPS naviga'];
 
 
 %### small deep ocean velocity
 if sum(ps.smallfac(:,2))>0
-  [A2,A1,d] = lainsmal(A2,A1,d,ps.smallfac);
+  [Aocean,A1,d] = lainsmal(Aocean,A1,d,ps.smallfac);
 end
 
 de.ocean_constraints = [de.ocean_constraints;...
-	sum(abs(A2))-sum(de.ocean_constraints)];
+	sum(abs(Aocean))-sum(de.ocean_constraints)];
 de.ctd_constraints = [de.ctd_constraints;sum(abs(A1))-sum(de.ctd_constraints)];
 de.type_constraints = [de.type_constraints;'Small flow'];
 
@@ -531,29 +531,29 @@ de.type_constraints = [de.type_constraints;'Small flow'];
 if (psbot==0 & ps.barofac==0 & ps.sadcpfac==0), 
   disp('    No bottom no barotropic no SADCP constraint => setting mean U,V to zero')
   dr.onlyshear = 1;
-  [A2,A1,d] = lainocean(A2,A1,d);
+  [Aocean,A1,d] = lainocean(Aocean,A1,d);
 elseif isfield(dr,'onlyshear') 
   dr = rmfield(dr,'onlyshear');
 end
 
 de.ocean_constraints = [de.ocean_constraints;...
-	sum(abs(A2))-sum(de.ocean_constraints)];
+	sum(abs(Aocean))-sum(de.ocean_constraints)];
 de.ctd_constraints = [de.ctd_constraints;sum(abs(A1))-sum(de.ctd_constraints)];
 de.type_constraints = [de.type_constraints;'Zero mean '];
 
 %### add CTD drag constraint
 if ps.dragfac>0
   disp(['    Weight for drag is (ps.dragfac) ',num2str(ps.dragfac)])
-  [A2,A1,d] = laindrag(A2,A1,d,ctdvel,ps.dragfac);
+  [Aocean,A1,d] = laindrag(Aocean,A1,d,ctdvel,ps.dragfac);
 end
 
 de.ocean_constraints = [de.ocean_constraints;...
-	sum(abs(A2))-sum(de.ocean_constraints)];
+	sum(abs(Aocean))-sum(de.ocean_constraints)];
 de.ctd_constraints = [de.ctd_constraints;sum(abs(A1))-sum(de.ctd_constraints)];
 de.type_constraints = [de.type_constraints;'Drag Model'];
 
 [ld,a1l] = size(A1);
-[ld,a2l] = size(A2);
+[ld,a2l] = size(Aocean);
 
 
 disp(['    ready for inversion  length of  d: ',num3str(ld,6,0)])
@@ -561,7 +561,7 @@ disp(['              (CTD vel)  length of A1: ',num3str(a1l,6,0)])
 disp(['            (ocean vel)  length of A2: ',num3str(a2l,6,0)])
 
 
-[uocean,uctd] = lainsolv(A2,A1,d,ps.solve);
+[uocean,uctd] = lainsolv(Aocean,A1,d,ps.solve);
 
 % save results in output array
 dr.z = z;
@@ -590,6 +590,7 @@ dr.vctd = -imag(uctd(:,1))';
 if size(uctd,2)>1
  dr.uctderr = (uctd(:,2))';
 end
+
 
 dt = diff(tim)*24*3600;
 dt = mean([0,dt;dt,0]);
@@ -748,8 +749,8 @@ if nargout>2
   end
   de.uocean = uocean;
   de.uctd = uctd;
-  de.dfit = [A2,A1]*[uocean(:,1);uctd(:,1)];
-  de.A = [A2,A1];
+  de.dfit = [Aocean,A1]*[uocean(:,1);uctd(:,1)];
+  de.A = [Aocean,A1];
   de.A1o = A1o;
   de.A2o = A2o;
   de.do = do;
@@ -767,7 +768,7 @@ if ps.down_up
   A1s=A1(idoc,:);
   ii=find(full(sum(A1s))==0);
   A1s(:,ii)=[];
-  A2s=A2(idoc,:);
+  A2s=Aocean(idoc,:);
   ds=d(idoc);
  
   disp('    Smoothing Ocean velocity profile')
@@ -797,7 +798,7 @@ if ps.down_up
     A1s=A1(iupc,:);
     ii=find(full(sum(A1s))==0);
     A1s(:,ii)=[];
-    A2s=A2(iupc,:);
+    A2s=Aocean(iupc,:);
     ds=d(iupc);
 
     disp('    Smoothing Ocean velocity profile')
@@ -840,15 +841,15 @@ end
 dr.p = sw_pres(dr.z,dr.lat);
 
 % ----------------------------------------------------------
-function [Ao,Ac,d]=lainbaro(Ao,Ac,d,uship,dt,w)
-%function [Ao,Ac,d]=lainbaro(Ao,Ac,d,uship,dt,w)
+function [Aocean,Ac,d]=lainbaro(Aocean,Ac,d,uship,dt,w)
+%function [Aocean,Ac,d]=lainbaro(Aocean,Ac,d,uship,dt,w)
 %
 % add barotropic constrain
 % [uship] ship velocity over the cast from GPS positions
 % w strength of constrain
 %
 % 
-[li,ljo] = size(Ao);
+[li,ljo] = size(Aocean);
 [li,ljc] = size(Ac);
 if nargin<6, 
   w = 1; 
@@ -863,34 +864,34 @@ disp(['    Normalized barotropic constrain weight: ',num2str(w)])
 disp(['    Mean individual ctd velocity weight : ',num2str(mean(w*fac))])
 
 Ac = [Ac;(1:ljc)*0+dt/sum(dt)*w*fac];
-Ao(li+1,1) = 0;
+Aocean(li+1,1) = 0;
 d = [d;-1*uship*w*fac];
 
 % ----------------------------------------------------------
-function [Ao,Ac,d]=lainocean(Ao,Ac,d,w)
-%function [Ao,Ac,d]=lainocean(Ao,Ac,d,w)
+function [Aocean,Ac,d]=lainocean(Aocean,Ac,d,w)
+%function [Aocean,Ac,d]=lainocean(Aocean,Ac,d,w)
 %
 % set barotropic constrain to be no mean ocean velocity
 % w strength of constrain
 %
 %
-[li,ljo]=size(Ao);
+[li,ljo]=size(Aocean);
 [li,ljc]=size(Ac);
 if nargin<4, 
   w=1; 
 end
 
 % normalize weights
-fac=mean(sum(Ao));
+fac=mean(sum(Aocean));
 disp('    Adding no mean flow constraint')
 
-Ao=[Ao;(1:ljo)*0+w*fac];
+Aocean=[Aocean;(1:ljo)*0+w*fac];
 Ac(li+1,1)=0;
 d=[d;0];
 
 %-------------------------------------------------------------------
-function [Ao,Ac,d,ubot,ibot]=lainbott(dbvel,bvel,bvelw,Ao,Ac,d,botfacin)
-% function [Ao,Ac,d,ubot,ibot]=lainbott(dbvel,bvel,bvelw,Ao,Ac,d,botfacin)
+function [Aocean,Ac,d,ubot,ibot]=lainbott(dbvel,bvel,bvelw,Aocean,Ac,d,botfacin)
+% function [Aocean,Ac,d,ubot,ibot]=lainbott(dbvel,bvel,bvelw,Aocean,Ac,d,botfacin)
 %
 % add bottom track to the two parts of the A matrix
 %
@@ -899,7 +900,7 @@ function [Ao,Ac,d,ubot,ibot]=lainbott(dbvel,bvel,bvelw,Ao,Ac,d,botfacin)
 % bvelw = ratio between bottom track std and vel error
 %
 % d = cell velocity data
-% Ao = ocean matrix
+% Aocean = ocean matrix
 % Ac = ctd matrix
 % botfac = nominal weight for bottom track
 %
@@ -907,7 +908,7 @@ function [Ao,Ac,d,ubot,ibot]=lainbott(dbvel,bvel,bvelw,Ao,Ac,d,botfacin)
 % ubot (:,1) = mean velocity
 % ubot (:,2) = error
 % ibot depth index
-[li,ljo] = size(Ao);
+[li,ljo] = size(Aocean);
 
 if nargin<5, 
   botfacin = 1; 
@@ -915,7 +916,7 @@ end
 
 ibot = find(isfinite(dbvel));
 dbot = (d(ibot)-dbvel(ibot));
-Aob = Ao(ibot,:);
+Aob = Aocean(ibot,:);
 
 if nargout>3
   disp('    Bottom inversion ')
@@ -964,7 +965,7 @@ if length(iokbot>0)
 
   d=[d;db];
   Ac=[Ac;Acb];
-  Ao(length(d),1)=0;
+  Aocean(length(d),1)=0;
   disp(['    ',int2str(length(botfac)),...
        ' bottom track ctd-vel weights of about : ',num2str(mean(botfac))])
 
@@ -973,21 +974,21 @@ else
 end
 
 %-------------------------------------------------------------------
-function [p,Ao,Ac,d,ds,messages] = ...
-    lainsadcp(p,svel,Ao,Ac,d,dz,sadcpfac,velerr,messages)
-% function [p,Ao,Ac,d,ds,messages]=lainsadcp(p,svel,Ao,Ac,d,dz,sadcpfac,velerr,messages)
+function [p,Aocean,Ac,d,ds,messages] = ...
+    lainsadcp(p,svel,Aocean,Ac,d,dz,sadcpfac,velerr,messages)
+% function [p,Aocean,Ac,d,ds,messages]=lainsadcp(p,svel,Aocean,Ac,d,dz,sadcpfac,velerr,messages)
 %
 % add SADCP to the two parts of the A matrix
 %
 % svel = ship ADCP data velocity profile
 %
 % d = cell velocity data
-% Ao = ocean matrix
+% Aocean = ocean matrix
 % Ac = ctd matrix
 % sadcpfac = weight for SADCP velocity
 % velerr = velocity error for LADCP super ensemble
 %
-[li,ljo]=size(Ao);
+[li,ljo]=size(Aocean);
 
 if nargin<8
   velerr = 0; 
@@ -1035,13 +1036,13 @@ end
 if sadcpfac>0
   % weight down by factor of 2 because it directly
   % influences velocity (up and down)
-  fac2 = sqrt(full(sum(abs(Ao))))/2;
+  fac2 = sqrt(full(sum(abs(Aocean))))/2;
   for n=1:length(dsadcp)
     % sort to depth
     jz = round(zsadcp(n)/dz);
     jz = min(max(jz,1),ljo);
     % fac(n)=fac(n)*fac2(jz);
-    Ao(li+n,jz) = sadcpfac*fac(n);
+    Aocean(li+n,jz) = sadcpfac*fac(n);
     d = [d;dsadcp(n)*sadcpfac.*fac(n)];
   end
   Ac(length(d),1) = 0;
@@ -1067,8 +1068,8 @@ ds.uerr_sadcp = verr(iok);
 
 
 %-------------------------------------------------------------------
-function [Ao,Ac,d]=laindrag(Ao,Ac,d,ctdvel,w)
-%function [Ao,Ac,d]=laindrag(Ao,Ac,d,ctdvel,w)
+function [Aocean,Ac,d]=laindrag(Aocean,Ac,d,ctdvel,w)
+%function [Aocean,Ac,d]=laindrag(Aocean,Ac,d,ctdvel,w)
 %
 % use drag law to constrain UCTD
 % ctdvel  GPS derived ship velocity modified for drag
@@ -1077,7 +1078,7 @@ function [Ao,Ac,d]=laindrag(Ao,Ac,d,ctdvel,w)
 if nargin<5, 
   w=1; 
 end
-[li,ljo] = size(Ao);
+[li,ljo] = size(Aocean);
 [li,ljc] = size(Ac);
 
 % how often to constrain CTD velocity
@@ -1108,10 +1109,10 @@ for i=1:length(izz);
     % but nearby ocean velocity is felt more
     iz1(1:izmax) = (1:izmax).^2;
     iz1 = iz1*sum(iz0)/sum(iz1);
-    Ao = [Ao;-iz1];
+    Aocean = [Aocean;-iz1];
   else 
     in = in+1;
-    Ao(li+in,1) = 0;
+    Aocean(li+in,1) = 0;
   end
   % set U_CTD = - ctdvel as constrain
   d = [d;-ctdvel(iz)*sum(iz0)];
@@ -1201,7 +1202,7 @@ if sum(fs>0)>0
       As(1,lm) = 0;
     end
     A = [A;As];
-
+    
   end
 
   % smooth start and end of vector
@@ -1215,7 +1216,7 @@ if sum(fs>0)>0
       A(lt+2,end-[1,0]-j0) = [-2 2]*fs(end-j0);
     end
   end
- 
+
   [lt,lm] = size(A);
   Ap(lt,1) = 0;
   d(lt) = 0;

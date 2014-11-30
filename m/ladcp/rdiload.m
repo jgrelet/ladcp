@@ -1,4 +1,4 @@
-function [data,values,messages,params] = rdiload(files,params,messages,values)
+function [data,values,messages,params,files] = rdiload(files,params,messages,values)
 % function [data,values,messages,params] = rdiload(files,params,messages,values)
 %
 % RDILOAD Load and merge upward and downward looking ADCP raw data.
@@ -29,7 +29,7 @@ function [data,values,messages,params] = rdiload(files,params,messages,values)
 %      eb: bottom track error velocity
 %  instid: instrument serial numbers
 %
-% version 0.15	last change 07.03.2012
+% version 0.17	last change 14.02.2013
 
 % originally Christian Mertens, IfM Kiel
 % G. Krahmann, IFM-GEOMAR, June 2006
@@ -50,12 +50,43 @@ function [data,values,messages,params] = rdiload(files,params,messages,values)
 % renamed cosd and sind to cos_d and sin_d      GK, 31.05.2011  0.12-->0.13
 % bug in renaming l to data                     GK, 25.08.2011  0.13-->0.14
 % time interpolation only up to 10 seconds      GK, 07.03.2012  0.14-->0.15
+% recognize multiple files and change 'files'   
+% always display % of 3-beam solutions, warn when
+% >20%                                          GK, 08.11.2012  0.15-->0.16
+% params.timoff_uplooker                        GK, 14.02.2013  0.16-->0.17
 
 %
 % general function info
 %
 disp(' ')
 disp('RDILOAD:  load ADCP data')
+
+
+%
+% check whether there are multiple files
+% 
+count = 1;
+while exist(files.ladcpdo(end,:),'file')
+  nname = files.ladcpdo(end,:);
+  nname(end-[6:-1:4]) = int2str0(count,3);
+  if exist(nname,'file')
+    files.ladcpdo(end+1,:) = nname;
+    count = count+1;
+  else
+    break
+  end
+end
+count = 1;
+while exist(files.ladcpup(end,:),'file')
+  nname = files.ladcpup(end,:);
+  nname(end-[6:-1:4]) = int2str0(count,3);
+  if exist(nname,'file')
+    files.ladcpup(end+1,:) = nname;
+    count = count+1;
+  else
+    break
+  end
+end
 
 
 %
@@ -346,7 +377,6 @@ else
 end
 
 if values.up==1
-
   disp(['    Loading up-data ',fup(1,:)])
   if size(fup,1)==1
     [fu,vu,velu,cmu,eau,pgu,btu] = whread(fid_up);
@@ -489,6 +519,26 @@ idb = [1:fd(f.nbin)];
 if values.up==1
   iub = [1:fu(f.nbin)];
 
+  %
+  % In case the time of the instruments differs
+  % we are going to shift the up-looker.
+  % This part is rather nasty as a proper check would 
+  % require quite a bit of extra code.
+  %
+  if params.timoff_uplooker~=0
+    vu(:,1,v.tim) = vu(:,1,v.tim)+params.timoff_uplooker;
+    figure(3)
+    clf
+    plot(vd(:,1,v.tim),veld(:,2,3))
+    hold on
+    plot(vu(:,1,v.tim),velu(:,2,3),'r')
+    disp(' ')
+    disp('PAUSED')
+    disp('check whether params.timoff_uplooker brings vertical velocities to alignment')
+    disp(' ')
+    pause
+    close(3)
+  end
 
   % 
   % in case instruments are not synchronized and one instruments starts late, then
@@ -518,7 +568,27 @@ if values.up==1
     btu(1:extra_ind,:,:) = nan;
   elseif vd(1,1,v.tim)-vu(1,1,v.tim)>20/86400
     disp('data at beginning of downlooker is missing')
-    error('this is not yet coded. Contact Gerd Krahmann for help.')
+    dt = nmean(diff(vd(:,1,v.tim)));
+    extra_ind = round((vd(1,1,v.tim)-vu(1,1,v.tim))/dt);
+    dummy = nan*vd(ones(extra_ind,1),1,:);
+    vd = [dummy;vd];
+    vd(1:extra_ind,1,v.tim) = vd(extra_ind+1,1,v.tim)-[extra_ind:-1:1]*dt;
+    vd(1:extra_ind,1,v.pit) = 0;
+    vd(1:extra_ind,1,v.rol) = 0;
+    vd(1:extra_ind,1,v.hdg) = 0;
+    veld = veld([ones(extra_ind,1);[1:size(veld,1)]'],:,:);
+    veld(1:extra_ind,:,:) = nan;
+    pgd = pgd([ones(extra_ind,1);[1:size(pgd,1)]'],:,:);
+    pgd(1:extra_ind,:,:) = nan;
+    ead = ead([ones(extra_ind,1);[1:size(ead,1)]'],:,:);
+    ead(1:extra_ind,:,:) = nan;
+    cmd = cmd([ones(extra_ind,1);[1:size(cmd,1)]'],:,:);
+    cmd(1:extra_ind,:,:) = nan;
+    btd = btd([ones(extra_ind,1);[1:size(btd,1)]'],:,:);
+    btd(1:extra_ind,:,:) = nan;
+%  elseif vd(1,1,v.tim)-vu(1,1,v.tim)>20/86400
+%    disp('data at beginning of downlooker is missing')
+%    error('this is not yet coded. Contact Gerd Krahmann for help.')
   end
 
 
@@ -851,9 +921,11 @@ if isfield(data,'zu')
   ind = length(data.zu)+[1:length(data.zd)];
   if j_up/jok_up > 0.2
     warn=(['>   Detected  ',int2str(j_up*100/jok_up),' %  3 BEAM solutions up-looking']);
-    disp(warn)
     messages.warn = strvcat(messages.warn,warn);
+  else
+    warn=(['    Detected  ',int2str(j_up*100/jok_up),' %  3 BEAM solutions up-looking']);
   end
+  disp(warn)
 else
   ind = [1:length(data.zd)];
 end 
@@ -861,9 +933,11 @@ jok_dn = cumprod(size(find(~isnan(data.w(ind,:)))));
 j_dn = cumprod(size(find(isnan(data.e(ind,:)) & ~isnan(data.w(ind,:)))));
 if j_dn/jok_dn > 0.2
   warn=(['>   Detected  ',int2str(j_dn*100/jok_dn),' %  3 BEAM solutions down-looking']);
-  disp(warn)
   messages.warn = strvcat(messages.warn,warn);
+else
+  warn=(['    Detected  ',int2str(j_dn*100/jok_dn),' %  3 BEAM solutions down-looking']);
 end
+disp(warn)
 
 
 %

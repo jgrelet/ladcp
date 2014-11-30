@@ -1,5 +1,5 @@
-function [] = process_cast(stn)
-% function [] = process_cast(stn)
+function [] = process_cast(stn,extraarg)
+% function [] = process_cast(stn,extraarg)
 %
 % Process LADCP cast, including GPS, SADCP, and BT data.
 %
@@ -7,16 +7,35 @@ function [] = process_cast(stn)
 %                               numbered in this way
 %                               Enter a negative number to clear loaded
 %                               and saved ancillary data for that station.
+%             extraarg  []    - add 'noplots' to not save plots
+%                               useful to speed up testing
 %
-% version 0.5	last change 28.05.2011
-
+% version 0.8	last change 13.01.2013
+ 
 % G.Krahmann, IFM-GEOMAR
 
 % orient statements for figure saving     GK, 14.07.2008  0.1-->0.2
 % orient gone, several drawnow's          GK, 15.07.2008  0.2-->0.3
 % call clear_prep for negative stn        GK, 07.02.2009  0.3-->0.4
 % variable p.print_formats                GK, 28.05.2011  0.4-->0.5
+% noplots                                 GK, 04.11.2012  0.5-->0.6
+% f as output of rdiload.m                GK, 08.11.2012  0.6-->0.7
+% act on p.savemat                        GK, 13.01.2013  0.7-->0.8
 
+%
+% handle extra arguments
+%
+noplots = 0;
+if nargin>1
+  if strcmp(extraarg,'noplots')
+    noplots = 1;
+  end
+end
+
+
+%
+% check current directory
+%
 if exist('logs')~=exist(pwd);
     disp('>   This directory is not prepared for the LADCP software ')
     disp('>   Sorry EXIT ')
@@ -33,7 +52,6 @@ if stn<0
 end
 
 
-
 %
 % Initialize the processing by loading parameters
 % and make sure that we have no leftovers from previous processings
@@ -41,7 +59,7 @@ end
 default_params;
 cruise_params;
 cast_params;
-f = misc_composefilenames(f,p,stn);
+files = misc_composefilenames(p,stn);
 
 
 % 
@@ -54,7 +72,7 @@ f = misc_composefilenames(f,p,stn);
 % load RDI data
 % and perform some simple processing steps
 %
-[data,values,messages,p] = rdiload(f,p,messages,values);
+[data,values,messages,p,files] = rdiload(files,p,messages,values);
 [data,messages] = misc_prepare_rdi(data,p,messages);
 
 tic;					% start timer
@@ -70,7 +88,7 @@ drawnow
 % convolution of the loading routines for the 
 % various data sets
 %
-[data,messages] = loading(f,data,messages,p);
+[data,messages] = loading(files,data,messages,p);
 
 
 %
@@ -210,7 +228,7 @@ for n = 1:size(messages.warnp,1)
   p.warnings = [p.warnings deblank(messages.warnp(n,:)) char(10)];
 end
  
-figure(2)
+sfigure(2);
 clf
 % experimental diagnostic of battery voltage
 %
@@ -246,47 +264,55 @@ hgsave('tmp/11')
 
 disp(' ')
 disp('SAVING RESULTS')
-if length(f.res)>1
+if length(files.res)>1
   
   %
   % save results to ASCII, MATLAB and NETCDF files
   %
-  saveres(dr,p,ps,f,values)
+  saveres(data,dr,p,ps,files,values)
 %  da = savearch(values,dr,data,p,ps,f);
 
   %
   % save plots
   %
   % handle newer matlab versions
-if version('-release')>=14
-    imac = 0;
-else
+  if version('-release')>=14
+     imac = 0;
+  else
     imac = ismac;
-end
-
-  for n = 1:length(p.saveplot)
-    j = p.saveplot(n);
-    if exist(['tmp/',int2str(j),'.fig'],'file')
-      figload(['tmp/',int2str(j),'.fig'],2)
-    end
-    warning off
-    if imac
-      if findstr(p.print_formats,'ps')
-        eval(['print -depsc ',f.plots,'_' int2str(j) '.eps '])
-      end
-    else
-      if findstr(p.print_formats,'ps')
-        eval(['print -dpsc ',f.plots,'_' int2str(j) '.ps '])
-      end
-    end
-    if findstr(p.print_formats,'jpg')
-      eval(['print -djpeg ',f.plots,'_' int2str(j) '.jpg '])
-    end
-    warning on
   end
 
+  if noplots==0
+    for n = 1:length(p.saveplot)
+      j = p.saveplot(n);
+      if exist(['tmp/',int2str(j),'.fig'],'file')
+        figload(['tmp/',int2str(j),'.fig'],2)
+      end
+      warning off
+      if imac
+        if findstr(p.print_formats,'ps')
+          eval(['print -depsc ',files.plots,'_' int2str(j) '.eps '])
+        end
+      else
+        if findstr(p.print_formats,'ps')
+          eval(['print -dpsc ',files.plots,'_' int2str(j) '.ps '])
+        end
+      end
+      if findstr(p.print_formats,'jpg')
+        eval(['print -djpeg ',files.plots,'_' int2str(j) '.jpg '])
+      end
+      warning on
+    end
+  end
+  
   % save a protocol
   saveprot
+
+  % save full information into mat file
+  if p.savemat==1
+    disp(['    Saving full information to ',files.res,'_full.mat'])
+    save6([files.res,'_full.mat'])
+  end
   
 end
 
