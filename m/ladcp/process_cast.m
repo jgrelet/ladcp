@@ -56,7 +56,12 @@ end
 % Initialize the processing by loading parameters
 % and make sure that we have no leftovers from previous processings
 %
-default_params;
+% default_params;
+p = default_p_object(stn, '%03d');
+f = default_f_object(stn);
+ps = default_ps_object;
+
+% overwrite default parameters for cruise and cast
 cruise_params;
 cast_params;
 files = misc_composefilenames(p,stn);
@@ -69,7 +74,9 @@ disp(p.software);
 %
 [values] = prepare_cast(p,files);
 
-
+% a mettre sous forme de classe
+messages.warn = 'LADCP WARNINGS';
+messages.warnp = 'LADCP processing warnings: ';
 %
 % load RDI data
 % and perform some simple processing steps

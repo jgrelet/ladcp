@@ -95,8 +95,6 @@ mh(16) = uicontrol('style','push','position',[15,210,140,20],...
   'horizontalalignment','center','string','Inv. Weights 2',...
   'callback',{@plot_controls, 16});
 
-% switch to final result figure
-%plot_controls(mh(1), [], 1);
 
 % nested function plot_controls
 % control function for LADCP plotmenu

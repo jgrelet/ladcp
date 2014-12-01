@@ -38,16 +38,16 @@ ltim = 0;
 lsadcp = 0;
 if isfield(struct,'z');
   lz = length(getfield(struct,'z'));
-end  
+end
 if isfield(struct,'tim');
   ltim = length(getfield(struct,'tim'));
-end  
+end
 if isfield(struct,'zbot');
   lbot = length(getfield(struct,'zbot'));
-end  
+end
 if isfield(struct,'z_sadcp');
   lsadcp = length(getfield(struct,'z_sadcp'));
-end  
+end
 
 % define dimensions in netcdf file
 if lz>0
@@ -114,46 +114,46 @@ for n=1:size(fnames,1)
     eval([fnames{n},'_varID = varID;']);
   end
 end
-  
-% parse fieldnames and add them to the netcdf file  
+
+% parse fieldnames and add them to the netcdf file
 netcdf.reDef(nc);
 
 for i=2:(nargin-1)
-   eval(['a=st',int2str(i),';']);
-   fnames = fieldnames(a);
-   if isstruct(a)
-      if ~isstruct(eval(['a.' fnames{1}])) % No SubStructure
-	 dummy='New Structure';
-         netcdf.putAtt(nc,netcdf.getConstant('NC_GLOBAL'),['st',int2str(i)],dummy);
-	 for n = 1:size(fnames,1)
-	    dummy = getfield(a,fnames{n});
-	    if size(dummy,1)==1
-               if islogical(dummy)
-                  netcdf.putAtt(nc,netcdf.getConstant('NC_GLOBAL'),fnames{n},int32(dummy));
-               else
-                  netcdf.putAtt(nc,netcdf.getConstant('NC_GLOBAL'),fnames{n},dummy);
-               end
-	    end
-	 end
-      else % SubStructures -> Variable Attributes
-         [ndims,nvars] = netcdf.inq(nc);
-	 for n = 1:size(fnames,1)
-            for varid=0:nvars-1
-                if strcmp(fnames{n},netcdf.inqVar(nc,varid))
-	           atts = eval(['fieldnames(a.' fnames{n} ');']);
-                   for j = 1:size(atts,1)
-                       dummy = eval(['a.' fnames{n} '.' atts{j} ';']);
-                       if size(dummy,1) == 1
-                          netcdf.putAtt(nc,varid,atts{j},dummy);
-                       end
-                   end
-                end
-            end	       
-	 end
+  eval(['a=st',int2str(i),';']);
+  fnames = fieldnames(a);
+  if (isstruct(a) || isobject(a))
+    if ~isstruct(eval(['a.' fnames{1}])) % No SubStructure
+      dummy='New Structure';
+      netcdf.putAtt(nc,netcdf.getConstant('NC_GLOBAL'),['st',int2str(i)],dummy);
+      for n = 1:size(fnames,1)
+        dummy = getfield(a,fnames{n});
+        if size(dummy,1)==1
+          if islogical(dummy)
+            netcdf.putAtt(nc,netcdf.getConstant('NC_GLOBAL'),fnames{n},int32(dummy));
+          else
+            netcdf.putAtt(nc,netcdf.getConstant('NC_GLOBAL'),fnames{n},dummy);
+          end
+        end
       end
-   else
-      disp(' not structure')
-   end
+    else % SubStructures -> Variable Attributes
+      [ndims,nvars] = netcdf.inq(nc);
+      for n = 1:size(fnames,1)
+        for varid=0:nvars-1
+          if strcmp(fnames{n},netcdf.inqVar(nc,varid))
+            atts = eval(['fieldnames(a.' fnames{n} ');']);
+            for j = 1:size(atts,1)
+              dummy = eval(['a.' fnames{n} '.' atts{j} ';']);
+              if size(dummy,1) == 1
+                netcdf.putAtt(nc,varid,atts{j},dummy);
+              end
+            end
+          end
+        end
+      end
+    end
+  else
+    disp(' not structure')
+  end
 end
 netcdf.endDef(nc);
 
