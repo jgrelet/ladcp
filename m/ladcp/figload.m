@@ -68,7 +68,8 @@ if exist(file,'file')
   end
 else
 %  warning(['File ',file,' does not exist.']);
-  clf
+  figure(2);
+  clf;
   text(0,0.25,['Figure ',strtok(file(17:end),'.')],'horizontalali','center',...
 	'fontweight','bold','fontsize',30)
   text(0,0,'No displayable output','horizontalali','center',...
