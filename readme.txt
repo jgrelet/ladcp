@@ -7,6 +7,13 @@ gkrahmann@ifm-geomar.de
 
 Gerd Krahmann, Kiel July 2006
 
+Frederic.Marin@ird.fr
+
+Frederic Marin IRD - LEGOS - Noumea - june 2012
+  
+Jacques.Grelet@ird.fr 
+
+Jacques Grelet IRD US191 - Plouzane - May/Dec 2014
 
 ----------------------------------------------------------
 
@@ -37,8 +44,14 @@ gkrahmann@ifm-geomar.de
 Gerd Krahmann
 
 -------------------------------------------------------------------
+        	LADCP Processing v10.16.2
+
+Copy examples files from ladcp\m\initial_dir\examples\pirata-fr24 
+to your working directory and launch startup.m from Matlab.
 
 
+
+-------------------------------------------------------------------
 		LADCP Processing v10.0-v10.2 beta
 
 This is a description of how to set up the IFM-GEOMAR/LDEO
