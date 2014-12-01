@@ -36,7 +36,7 @@ end
 %
 % check current directory
 %
-if exist('logs')~=exist(pwd);
+if exist('logs') ~= exist(pwd);
     disp('>   This directory is not prepared for the LADCP software ')
     disp('>   Sorry EXIT ')
     return
@@ -46,11 +46,9 @@ end
 %
 % clear already loaded and saved data for reloading and reprocessing
 %
-if stn<0
-%  clear_prep(-stn);
-%  return
-   disp('please use clear_prep');
-   return
+if stn < 0
+  stn = abs(stn);
+  clear_prep(abs(stn));
 end
 
 
@@ -274,7 +272,7 @@ if length(files.res)>1
   % save results to ASCII, MATLAB and NETCDF files
   %
   saveres(data,dr,p,ps,files,values)
-%  da = savearch(values,dr,data,p,ps,f);
+  da = savearch(values,dr,data,p,ps,files);
 
   %
   % save plots
@@ -324,7 +322,7 @@ if length(files.res)>1
 end
 
 % switch to final result figure
-plot_controls(1)
+% plot_controls(1)
     
 
 %----------------------------------------------------------------------
