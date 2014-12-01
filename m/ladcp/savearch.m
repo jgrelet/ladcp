@@ -295,7 +295,7 @@ if p.savemat
 end
 
 % save to netcdf file if you have NETCDF libary
-if exist('netcdf')~=0 & p.savecdf
+if exist('netcdf')~=0 | exist('ncinfo') ~=0 & p.savecdf
  dr.tim=dr.tim-year0;
  disp(['    saving level-II results in netcdf-file: ',f.res,'.nc'])
  ladcp2cdf([f.res,'.nc'],dr,da,p,ps,f,att)
