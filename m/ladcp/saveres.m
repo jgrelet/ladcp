@@ -28,7 +28,7 @@ end
 %
 % store some results as a MAT file
 %
-save6([f.res,'.mat'],'ts','dr','p','ps','f')
+save6([    f.res,'.mat'],'ts','dr','p','ps','f')
 
 
 %
