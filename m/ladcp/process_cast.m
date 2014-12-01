@@ -66,15 +66,12 @@ cruise_params;
 cast_params;
 files = misc_composefilenames(p,stn);
 
-disp(p.software);
-
-
 % 
 % prepare the various data files for easy loading
 %
 [values] = prepare_cast(p,files);
 
-% a mettre sous forme de classe
+% structure messages need for warning
 messages.warn = 'LADCP WARNINGS';
 messages.warnp = 'LADCP processing warnings: ';
 %
