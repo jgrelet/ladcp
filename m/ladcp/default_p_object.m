@@ -585,30 +585,14 @@ classdef default_p_object < dynamicprops
       self.software = value;
     end
     
-    % store station number and name (in proper format) since v10.16
+    % get station number and name (in proper format) since v10.16
     function value = get.ladcp_station_name(self)
       value = self.ladcp_station_name;
     end
     
-%     function set.ladcp_station_name(self, value)
-%       if ischar(value)
-%         self.ladcp_station_name = value;
-%       else
-%         self.ladcp_station_name = sprintf(value, self.format);
-%       end
-%     end
-    
     function value = get.ladcp_station(self)
       value = self.ladcp_station;
     end
-    
-%     function set.ladcp_station(self, value)
-%       if ischar(value)
-%         self.ladcp_station = str2double(value);
-%       else
-%         self.ladcp_station = value;
-%       end
-%     end
     
   end % end of public methods
   
