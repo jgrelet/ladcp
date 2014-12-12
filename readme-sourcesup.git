@@ -8,8 +8,8 @@ Quick guide to setup git with on Sourcesup
   http://git-scm.com/download
 
   Initialize git:
-    $ git config --global user.name "jgrelet"
-    $ git config --global user.name "Jacques.Grelet@
+     $ git config --global user.name "your login"
+    $ git config --global user.name "firstname.lastname@domain.com
     $ git config --global color.diff auto
     $ git config --global color.status auto
     $ git config --global color.branch auto
@@ -27,7 +27,7 @@ Quick guide to setup git with on Sourcesup
   to create yours ssh keys and paraphrase
 
   go to ~/.ssh and upload your public key from id_rsa.pub file
-  to your github admin page: https://github.com/<user>/<repository>
+  to your soucesup admin page: https://sourcesup.cru.fr
   SSH public keys tab.
 
   ssh: ssh://git@git.renater.fr:2222/ladcp.git
@@ -38,8 +38,13 @@ Quick guide to setup git with on Sourcesup
   Create your remote repository in github admin interface and
   push your local copy:
 
-  $ git remote add origin git@github.com:jgrelet/us191.git
+  $ git remote add origin git@git.renater.fr:2222/ladcp.git
   $ git push -u origin master
+
+  If you want clone (get a copy) of the project:
+  $ git clone git@git.renater.fr:2222/ladcp.git
+
+  See http://www.ird.fr/us191/spip.php?article67 
 
   Matlab:
   From R2014b, git is supported by Matlab 
