@@ -43,27 +43,33 @@ classdef default_f_object < handle
     sadcp_dir       = 'data/sadcp'
   end
   
-  properties (Access = private)
-    stn_format = '%03d'
-  end
+%   properties (Access = private)
+%     stn_format = '%03d'
+%   end
   
   
   %% public methods
   methods
     % constructor
     % varargin must in the '%0xd' format
-    function self = default_f_object(station_number, varargin)
-      if ~isempty(varargin)
-        self.stn_format = varargin{1};
-%       else
-%         error('Matlab:default_f_object', 'invalide input argument');
+    function self = default_f_object(stn, ndigits)
+      % pre initialization
+      
+      % if stn is numeric with number of valid digit
+      if nargin == 2 && isnumeric(stn)
+        stn_str = int2str0(stn, ndigits);
       end
-      if isnumeric(station_number) 
-        stn_str = sprintf(self.stn_format, station_number);
+      
+      % if stn is a string
+      if nargin == 1
+        if ischar(stn)
+          stn_str = stn;
+        else
+          % if stn is numeric, use 3 digits per default
+          stn_str = int2str0(stn,3);
+        end
       end
-      if ischar(station_number)
-        stn_str = station_number;
-      end
+      
       self.ladcpdo = strcat(self.raw_dir, filesep, stn_str, filesep,...
         stn_str,'DN000.000');
       self.ladcpup = strcat(self.raw_dir, filesep, stn_str, filesep,...

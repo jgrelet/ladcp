@@ -26,9 +26,12 @@ function [] = process_cast(stn,extraarg)
 % handle extra arguments
 %
 noplots = 0;
-if nargin>1
+if nargin > 1
   if strcmp(extraarg,'noplots')
     noplots = 1;
+  end
+  if isnumeric(extraarg)
+    ndigits = extraarg;
   end
 end
 
@@ -36,7 +39,7 @@ end
 %
 % check current directory
 %
-if exist('logs') ~= exist(pwd);
+if exist('logs', 'dir') ~= exist(pwd, 'dir');
     disp('>   This directory is not prepared for the LADCP software ')
     disp('>   Sorry EXIT ')
     return
@@ -57,14 +60,14 @@ end
 % and make sure that we have no leftovers from previous processings
 %
 % default_params;
-p = default_p_object(stn, '%03d');
-f = default_f_object(stn);
+p = default_p_object(stn, ndigits);
+f = default_f_object(stn, ndigits);
 ps = default_ps_object;
 
 % overwrite default parameters for cruise and cast
 cruise_params;
 cast_params;
-files = misc_composefilenames(p,stn);
+files = misc_composefilenames(p, f);
 
 % 
 % prepare the various data files for easy loading
@@ -180,7 +183,7 @@ end
 %
 % once we have a first guess profile we recompute the super ensemble
 %
-if (p.offsetup2down>0 & length(data.izu)>0)
+if (p.offsetup2down > 0 & length(data.izu) > 0)
   [p,data,messages] = prepinv(messages,data,p,dr,values);
 %  [p,data1,messages] = prepinv_with_old_rotation_options(messages,data1,p,dr1,values);
 %  keyboard

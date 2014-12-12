@@ -46,9 +46,15 @@ Gerd Krahmann
 -------------------------------------------------------------------
         	LADCP Processing v10.16.2
 
-Copy examples files from ladcp\m\initial_dir\examples\pirata-fr24 
-to your working directory and launch startup.m from Matlab.
+Copy the example files under ladcp\m\initial_dir\examples\<cruise> 
+in your working directory.
+For a new cruise, use one of a cruise directory as a template and modify the
+files to your configuration.
+Launch startup.m and process_cast
 
+ex:
+> startup
+> process_cast(1)
 
 
 -------------------------------------------------------------------

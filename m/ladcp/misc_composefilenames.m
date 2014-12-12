@@ -1,4 +1,4 @@
-function [f] = misc_composefilenames(params,stn);
+function [f] = misc_composefilenames(params, f)
 % function [f] = misc_composefilenames(params,stn);
 %
 % compose the output filenames, this can't be done earlier
@@ -25,14 +25,14 @@ f.nav_dir         = 'data/nav';
 f.sadcp_dir       = 'data/sadcp';
 
 % file names
-f.ladcpdo = [f.raw_dir '/' params.ladcp_station_name '/' params.ladcp_station_name 'DN000.000'];
-f.ladcpup = [f.raw_dir '/' params.ladcp_station_name '/' params.ladcp_station_name 'UP000.000'];
+f.ladcpdo = strcat(f.raw_dir, filesep, params.ladcp_station_name, filesep, params.ladcp_station_name,'DN000.000');
+f.ladcpup = strcat(f.raw_dir, filesep, params.ladcp_station_name, filesep, params.ladcp_station_name, 'UP000.000');
 
 
-f.nav = ['data/nav/nav',params.ladcp_station_name,'.mat'];
+f.nav =     ['data/nav/nav',params.ladcp_station_name,'.mat'];
 f.ctdprof = ['data/ctdprof/ctdprof',params.ladcp_station_name,'.mat'];
 f.ctdtime = ['data/ctdtime/ctdtime',params.ladcp_station_name,'.mat'];
-f.sadcp = ['data/sadcp/sadcp',params.ladcp_station_name,'.mat'];
+f.sadcp =   ['data/sadcp/sadcp',params.ladcp_station_name,'.mat'];
 
 
 % file name for results (extensions will be added by software)
@@ -45,16 +45,17 @@ f.sadcp = ['data/sadcp/sadcp',params.ladcp_station_name,'.mat'];
 %  *.ps             post-script figure of result 
 
 
-f.res = [f.prof_dir,'/',params.name];
-f.prof = [f.prof_dir,'/',params.name];
-f.plots = [f.plots_dir,'/',params.name];
-f.log = [f.logs_dir,'/',params.name];
+f.res =   strcat(f.prof_dir, filesep, params.name);
+f.prof =  strcat(f.prof_dir, filesep, params.name);
+f.plots = strcat(f.plots_dir,filesep, params.name);
+f.log =   strcat(f.logs_dir, filesep, params.name);
 
 if length(f.log) > 1                    % open log file
-  if exist([f.log,'.log'],'file')==2
-    delete([f.log,'.log'])
+  logFile = strcat(f.log,'.log');
+  if exist(logFile, 'file') == 2
+    delete(logFile)
   end
-  diary([f.log,'.log'])
+  diary(logFile)
   diary on
 end
 

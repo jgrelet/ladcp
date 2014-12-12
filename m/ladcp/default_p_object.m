@@ -27,7 +27,7 @@ classdef default_p_object < dynamicprops
     % store station number
     ladcp_station
     
-     % store station number in char
+    % store station number in char
     ladcp_station_name
     
     % for cruise
@@ -535,8 +535,7 @@ classdef default_p_object < dynamicprops
     ctd_prof_dir    = 'data/ctdprof'
     nav_dir         = 'data/nav'
     sadcp_dir       = 'data/sadcp'
-    % may be add tmp_dir
-    format          = '%03d';
+ 
   end
   
   properties (Access = public, Dependent = true)
@@ -546,21 +545,33 @@ classdef default_p_object < dynamicprops
   %% public methods
   methods
     % constructor
-    function self = default_p_object(stn, format)
+    function self = default_p_object(stn, ndigits)
+      
+      % pre initialization
+      
+      % if stn is numeric with number of valid digit
+      if nargin == 2 && isnumeric(stn)
+        self.ladcp_station = stn;
+        self.ladcp_station_name = int2str0(stn, ndigits);
+      end
+      
+      % if stn is a string
+      if nargin == 1
+        if ischar(stn)
+          self.ladcp_station_name = stn;
+          self.ladcp_station = str2double(stn);
+        else
+          % if stn is numeric, use 3 digits per default
+          self.ladcp_station = stn;
+          self.ladcp_station_name = int2str0(stn,3);
+        end
+      end
+      
+      % getting information from the host and user
       [~,self.whoami] = system('whoami');
       
-      % show version
+      % show version software
       fprintf(1, '%s\n%s\n', self.software, self.software_date);
-      
-      % store station number and name (in proper format)
-      self.format = format;
-      if ischar(stn)
-        self.ladcp_station_name = stn;
-        self.ladcp_station = str2double(stn);
-      else
-        self.ladcp_station = stn;
-        self.ladcp_station_name = num2str(stn, format);
-      end
       
     end
     
