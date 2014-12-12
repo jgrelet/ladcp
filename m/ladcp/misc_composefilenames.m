@@ -25,26 +25,13 @@ f.nav_dir         = 'data/nav';
 f.sadcp_dir       = 'data/sadcp';
 
 % file names
-<<<<<<< HEAD
 f.ladcpdo = strcat(f.raw_dir, filesep, params.ladcp_station_name, filesep, params.ladcp_station_name,'DN000.000');
 f.ladcpup = strcat(f.raw_dir, filesep, params.ladcp_station_name, filesep, params.ladcp_station_name, 'UP000.000');
-
 
 f.nav =     ['data/nav/nav',params.ladcp_station_name,'.mat'];
 f.ctdprof = ['data/ctdprof/ctdprof',params.ladcp_station_name,'.mat'];
 f.ctdtime = ['data/ctdtime/ctdtime',params.ladcp_station_name,'.mat'];
 f.sadcp =   ['data/sadcp/sadcp',params.ladcp_station_name,'.mat'];
-=======
-f.ladcpdo = [f.raw_dir '/' params.ladcp_station_name '/' params.ladcp_station_name 'DN000.000'];
-f.ladcpup = [f.raw_dir '/' params.ladcp_station_name '/' params.ladcp_station_name 'UP000.000'];
-
-
-f.nav = ['data/nav/nav',params.ladcp_station_name,'.mat'];
-f.ctdprof = ['data/ctdprof/ctdprof',params.ladcp_station_name,'.mat'];
-f.ctdtime = ['data/ctdtime/ctdtime',params.ladcp_station_name,'.mat'];
-f.sadcp = ['data/sadcp/sadcp',params.ladcp_station_name,'.mat'];
->>>>>>> 5099af6c7df45c11e32320d49e2b764c6237d152
-
 
 % file name for results (extensions will be added by software)
 %  *.bot            bottom referenced ASCII data
@@ -55,8 +42,6 @@ f.sadcp = ['data/sadcp/sadcp',params.ladcp_station_name,'.mat'];
 %  *.txt            ASCII short log file
 %  *.ps             post-script figure of result 
 
-
-<<<<<<< HEAD
 f.res =   strcat(f.prof_dir, filesep, params.name);
 f.prof =  strcat(f.prof_dir, filesep, params.name);
 f.plots = strcat(f.plots_dir,filesep, params.name);
@@ -68,18 +53,6 @@ if length(f.log) > 1                    % open log file
     delete(logFile)
   end
   diary(logFile)
-=======
-f.res = [f.prof_dir,'/',params.name];
-f.prof = [f.prof_dir,'/',params.name];
-f.plots = [f.plots_dir,'/',params.name];
-f.log = [f.logs_dir,'/',params.name];
-
-if length(f.log) > 1                    % open log file
-  if exist([f.log,'.log'],'file')==2
-    delete([f.log,'.log'])
-  end
-  diary([f.log,'.log'])
->>>>>>> 5099af6c7df45c11e32320d49e2b764c6237d152
   diary on
 end
 
