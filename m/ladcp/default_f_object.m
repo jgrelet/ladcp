@@ -43,15 +43,11 @@ classdef default_f_object < handle
     sadcp_dir       = 'data/sadcp'
   end
   
-%   properties (Access = private)
-%     stn_format = '%03d'
-%   end
-  
-  
   %% public methods
   methods
     % constructor
     % varargin must in the '%0xd' format
+
     function self = default_f_object(stn, ndigits)
       % pre initialization
       
@@ -69,7 +65,7 @@ classdef default_f_object < handle
           stn_str = int2str0(stn,3);
         end
       end
-      
+
       self.ladcpdo = strcat(self.raw_dir, filesep, stn_str, filesep,...
         stn_str,'DN000.000');
       self.ladcpup = strcat(self.raw_dir, filesep, stn_str, filesep,...

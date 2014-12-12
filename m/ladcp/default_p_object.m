@@ -535,7 +535,6 @@ classdef default_p_object < dynamicprops
     ctd_prof_dir    = 'data/ctdprof'
     nav_dir         = 'data/nav'
     sadcp_dir       = 'data/sadcp'
- 
   end
   
   properties (Access = public, Dependent = true)
@@ -573,7 +572,7 @@ classdef default_p_object < dynamicprops
       % show version software
       fprintf(1, '%s\n%s\n', self.software, self.software_date);
       
-    end
+    end % end of constructor
     
     % diplay object if public properties are set to hidden
     %     function display(self)
