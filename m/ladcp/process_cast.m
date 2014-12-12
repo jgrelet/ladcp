@@ -1,16 +1,21 @@
-function [] = process_cast(stn,extraarg)
-% function [] = process_cast(stn,extraarg)
+function [] = process_cast(stn, varargin)
+% function [] = process_cast(stn, varargin)
 %
 % Process LADCP cast, including GPS, SADCP, and BT data.
 %
 % input  :    stn             - station number, all data needs to be
 %                               numbered in this way
 %                               Enter a negative number to clear loaded
+%                               could a number or string ie '00201' for
+%                               station 2, cast one
 %                               and saved ancillary data for that station.
-%             extraarg  []    - add 'noplots' to not save plots
+%              format         - if stn is a number describing st 2, cast 1
+%                               format should be 5 (3 by default for
+%                               regular profil number)
+%             'noplot'        - add 'noplots' to not save plots
 %                               useful to speed up testing
 %
-% version 0.8	last change 13.01.2013
+% $Id$
  
 % G.Krahmann, IFM-GEOMAR
 
@@ -26,15 +31,17 @@ function [] = process_cast(stn,extraarg)
 % handle extra arguments
 %
 noplots = 0;
-if nargin > 1
-  if strcmp(extraarg,'noplots')
+nVarargs = length(varargin);
+
+% loop over each extra argument
+for k = 1 : nVarargs
+  if strcmp(varargin{k}, 'noplots')
     noplots = 1;
   end
-  if isnumeric(extraarg)
-    ndigits = extraarg;
+  if isnumeric(varargin{k})
+    ndigits = varargin{k};
   end
 end
-
 
 %
 % check current directory

@@ -56,6 +56,10 @@ Launch startup.m and process_cast
 ex:
 > startup
 > process_cast(1)
+or process station 2, cast 1
+> process_cast('00201') 
+or same in numeric with noplot option
+> process_cast(201, 5, 'noplot') 
 
 
 -------------------------------------------------------------------
