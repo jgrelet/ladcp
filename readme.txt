@@ -53,13 +53,12 @@ For a new cruise, use one of a cruise directory as a template and modify the
 files to your configuration.
 Launch startup.m and process_cast
 
-ex:
+example:
+
 > startup
-> process_cast(1)
-or process station 2, cast 1
-> process_cast('00201') 
-or same in numeric with noplot option
-> process_cast(201, 5, 'noplot') 
+> process_cast(1)         % process profil 1
+> process_cast('00201')   %  process profil 2, cast 1
+> process_cast(201, 5, 'noplot')  % same process with numeric and noplot option
 
 
 -------------------------------------------------------------------
