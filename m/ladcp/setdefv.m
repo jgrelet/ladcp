@@ -20,5 +20,5 @@ elseif isobject(self)
     self.(prop) = value;
   end
 else
-  error('matlab:setdefv', 'invalide parameter');
+  error('ladcp:setdefv', 'invalid parameter');
 end
