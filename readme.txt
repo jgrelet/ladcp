@@ -58,7 +58,8 @@ example:
 > process_cast(1)                 % process profil 1
 > process_cast('00201')           %  process profil 2, cast 1
 > process_cast(201, 5, 'noplot')  % same process with numeric value,
-                                  % format lenght (5) and noplot option
+                                  % format length 5 (3 by default) 
+                                  % and noplot option
 > process_cast(-1)                % call clear_prep and process profil 1
 
 
