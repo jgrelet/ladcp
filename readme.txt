@@ -55,12 +55,12 @@ Launch startup.m and process_cast
 example:
 
 > startup
-> process_cast(1)                 % process profil 1
-> process_cast('00201')           %  process profil 2, cast 1
+> process_cast(1)                 % process profile 1
+> process_cast('00201')           %  process profile 2, cast 1
 > process_cast(201, 5, 'noplot')  % same process with numeric value,
                                   % format length 5 (3 by default) 
                                   % and noplot option
-> process_cast(-1)                % call clear_prep and process profil 1
+> process_cast(-1)                % call clear_prep and process profile 1
 
 
 -------------------------------------------------------------------
