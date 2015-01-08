@@ -22,7 +22,7 @@ elseif isunix
   thePath = '/M/';
 end
 p.cruise_id	= 'PIRATA-FR24';
-p.name  = sprintf('fr24%03d',stn);
+p.name  = sprintf('fr24%s', p.ladcp_station_name);
 pathFile = strcat(thePath, p.cruise_id);
 
 

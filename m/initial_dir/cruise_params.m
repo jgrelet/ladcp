@@ -34,6 +34,8 @@ p.cruise_id	= 'CRUISE';
 % you should however leave the station number part as in the example
 %
 %p.name  = ['cruise_id',int2str0(stn,3)];
+%p.name  = sprintf('pn%s', p.ladcp_station_name);
+
 
 
 %

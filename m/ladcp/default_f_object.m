@@ -55,15 +55,13 @@ classdef default_f_object < handle
       if nargin == 2 && isnumeric(stn)
         stn_str = int2str0(stn, ndigits);
       end
+      if nargin == 1 && isnumeric(stn)
+        stn_str = int2str0(stn, 3);
+      end
       
       % if stn is a string
-      if nargin == 1
-        if ischar(stn)
-          stn_str = stn;
-        else
-          % if stn is numeric, use 3 digits per default
-          stn_str = int2str0(stn,3);
-        end
+      if ischar(stn)
+        stn_str = stn;
       end
 
       self.ladcpdo = strcat(self.raw_dir, filesep, stn_str, filesep,...

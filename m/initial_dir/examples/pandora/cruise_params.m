@@ -22,7 +22,7 @@ elseif isunix
   thePath = '/M/';
 end
 p.cruise_id	= 'PANDORA';
-p.name  = sprintf('pn%05d',stn);
+p.name  = sprintf('pn%s', p.ladcp_station_name);
 pathFile = strcat(thePath, p.cruise_id);
 
 

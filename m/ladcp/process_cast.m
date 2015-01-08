@@ -30,7 +30,8 @@ function [] = process_cast(stn, varargin)
 %
 % handle extra arguments
 %
-noplots = 0;
+noplots  = 0;
+ndigits  = 3;  % default
 nVarargs = length(varargin);
 
 % loop over each extra argument
@@ -58,7 +59,7 @@ end
 %
 if stn < 0
   stn = abs(stn);
-  clear_prep(abs(stn));
+  clear_prep(abs(stn), ndigits);
 end
 
 

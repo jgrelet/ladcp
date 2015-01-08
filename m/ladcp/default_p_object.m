@@ -553,17 +553,15 @@ classdef default_p_object < dynamicprops
         self.ladcp_station = stn;
         self.ladcp_station_name = int2str0(stn, ndigits);
       end
+      if nargin == 1 && isnumeric(stn)
+        self.ladcp_station = stn;
+        self.ladcp_station_name = int2str0(stn, 3);
+      end      
       
       % if stn is a string
-      if nargin == 1
-        if ischar(stn)
-          self.ladcp_station_name = stn;
-          self.ladcp_station = str2double(stn);
-        else
-          % if stn is numeric, use 3 digits per default
-          self.ladcp_station = stn;
-          self.ladcp_station_name = int2str0(stn,3);
-        end
+      if ischar(stn)
+        self.ladcp_station_name = stn;
+        self.ladcp_station = str2double(stn);
       end
       
       % getting information from the host and user
