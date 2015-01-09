@@ -17,7 +17,7 @@
 global pathFile;
 
 if ispc
-  thePath = 'f:\campagnes\';
+  thePath = 'g:\campagnes\';
 elseif isunix
   thePath = '/M/';
 end
@@ -151,3 +151,8 @@ p.use_sadcp = 0;
 % p.dragfac
 % p.urange/zrange
 % p.sadcp_dtok
+
+% what is the format of the output plots
+% can be multiple ones, separated by comma
+% e.g.  params.print_formats = 'ps,jpg,png';
+p.print_formats = 'png';
