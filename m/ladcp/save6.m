@@ -80,5 +80,5 @@ for c = 2 : nargin
 end
 
 %% the real work is done here
-disp(['save ' tmp endcmd]);
+% disp(['save ' tmp endcmd]);
 evalin('caller',['save ' tmp endcmd]);
