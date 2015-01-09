@@ -36,39 +36,42 @@ function [values] = prepctdprof(params, values)
 %   	'_1dbar.cnv data\raw_ctdprof'])
 global pathFile;
 
-fname = strcat(pathFile,'/data-processing/CTD/data/ladcp/fr24',...
-  params.ladcp_station_name, '_ladcp.cnv');
-if ~exist(fname,'file')
-   fname = strcat(pathFile,'/data-processing/CTD/data/ladcp/fr24',...
-     params.ladcp_station_name, '_ladcp.cnv');
+fname = strcat(pathFile,'/data-processing/CTD/data/cnv/fr24',...
+  params.ladcp_station_name, '.cnv');
+
+fprintf('    PREPCTDPROF:');
+
+if exist(fname,'file')
+  fprintf('  read %s\n', fname);
+  copyfile(fname,['data/raw_ctdprof/',...
+    params.ladcp_station_name, '.ctd']);
+  
+  % load the data and convert to standard format
+  %
+  % in this example
+  % we extract the PTS columns and get position and time data from the header
+  %
+  % you might have to convert depth to pressure in dbar
+  % and/or conductivity to salinity
+  [hdr,data] = read_sbe_cnv(['data/raw_ctdprof/',...
+    params.ladcp_station_name, '.ctd']);
+  
+  ctdprof = [data.p,data.t_pri,data.s_pri];
+  values.ctd_time = julian(hdr.nmea_utc);
+  values.ctd_lat = hdr.nmea_lat;
+  values.ctd_lon = hdr.nmea_lon;
+  
+  % the pressure data in the example had some spikes which
+  % could be removed by the following
+  % If your data quality is already good, you won't need the
+  % following lines
+  %good = find(ctdprof(:,3)>1);
+  %ctdprof = ctdprof(good,:);
+  
+else
+  error('ladcp:prepctdprof', 'file not exist: %s\nCheck the configuration of cruise_param.m file\n', fname);
 end
-if ~exist(fname,'file')
-   return
-end
-copyfile(fname,['data/raw_ctdprof/',...
-  params.ladcp_station_name, '.ctd']);
 
-% load the data and convert to standard format
-% 
-% in this example 
-% we extract the PTS columns and get position and time data from the header
-%
-% you might have to convert depth to pressure in dbar
-% and/or conductivity to salinity
-[hdr,data] = read_sbe_cnv(['data/raw_ctdprof/',...
-  params.ladcp_station_name, '.ctd']);
-
-ctdprof = [data.p,data.t_pri,data.s_pri];
-values.ctd_time = julian(hdr.nmea_utc);
-values.ctd_lat = hdr.nmea_lat;
-values.ctd_lon = hdr.nmea_lon;
-
-% the pressure data in the example had some spikes which
-% could be removed by the following
-% If your data quality is already good, you won't need the
-% following lines
-%good = find(ctdprof(:,3)>1);
-%ctdprof = ctdprof(good,:);
 
 % store data at the standard location
 save6(['data/ctdprof/ctdprof',...

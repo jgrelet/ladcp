@@ -54,15 +54,16 @@ v_sadcp = [];
 
 flname = strcat(pathFile,'\data-processing\SADCP\CASCADE\ncc\PIRATA-FR24-ALL_osite.nc');
 
-fprintf(1, '\nPREPSADCP:  load SADCP data\n');
+fprintf('    PREPSADCP  :  load SADCP data');
 
 % check that the SADCP file exists
 if ~exist(char(flname),'file')
    sadcp = [];
-   fprintf(1, 'cannot open SADCP file: %s\n', flname);
+   fprintf('\n    cannot open SADCP file: %s\n', flname);
    return
 end
 
+fprintf(' %s\n', flname);
 % read the cascade file
 nc = netcdf.open(flname,'NC_NOWRITE');
 % time
@@ -115,7 +116,7 @@ v_sadcp = v_sadcp(:,good);
 z_sadcp = z_sadcp;
 
 if ~isempty(tim_sadcp)
-  fprintf(1, 'find sadcp data for %d ensemble\n', length(good));
+  fprintf('find sadcp data for %d ensemble\n', length(good));
 end
 
 % remove data below 1200 meters
@@ -129,4 +130,4 @@ end
 
 % store the data
 save6(['data/sadcp/sadcp',params.ladcp_station_name],...
-	'tim_sadcp','lon_sadcp','lat_sadcp','u_sadcp','v_sadcp','z_sadcp')
+	'tim_sadcp','lon_sadcp','lat_sadcp','u_sadcp','v_sadcp','z_sadcp');

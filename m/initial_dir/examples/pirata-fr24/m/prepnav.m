@@ -27,8 +27,11 @@ global pathFile
 % the navigation is read from the CTD file, if it exists
 fname = strcat(pathFile,'/data-processing/CTD/data/ladcp/fr24',...
   params.ladcp_station_name, '_ladcp.cnv');
-if exist(fname,'file')
 
+fprintf('    PREPNAV    :');
+
+if exist(fname,'file')
+   fprintf('  read %s\n', fname);
    copyfile(fname,['data/raw_nav/',...
      params.ladcp_station_name,'.cnv']);
    [hdr,data] = read_sbe_cnv(['data/raw_nav/',...
@@ -37,7 +40,8 @@ if exist(fname,'file')
    timnav = julian(datevec(data.datenum));
    % latitude/longitude array
    data = [data.latitude,data.longitude];
-
+else
+  error('ladcp:prepnav', 'file not exist: %s\nCheck the configuration of m/prepnav.m file\n', fname);
 end
 
 % remove NaN values
@@ -46,4 +50,4 @@ timnav(ind) = [];
 data(ind,:) = [];
 
 % store data in the standard location
-save6(['data/nav/nav',params.ladcp_station_name],'timnav','data')
+save6(['data/nav/nav',params.ladcp_station_name],'timnav','data');
