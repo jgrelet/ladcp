@@ -17,7 +17,7 @@
 global pathFile;
 
 if ispc
-  thePath = 'g:\campagnes\';
+  thePath = 'g:/campagnes/';
 elseif isunix
   thePath = '/M/';
 end
