@@ -17,12 +17,12 @@
 global pathFile;
 
 if ispc
-  thePath = 'f:\campagnes\';
+  thePath = 'g:\campagnes\';
 elseif isunix
   thePath = '/M/';
 end
 p.cruise_id	= 'PIRATA-FR24';
-p.name  = sprintf('fr24%s', p.ladcp_station_name);
+p.name  = sprintf('fr24%03d',stn);
 pathFile = strcat(thePath, p.cruise_id);
 
 
@@ -114,13 +114,13 @@ p.outlier = [];
 
 % BOTTOM TRACK
 % 	The are several options to get bottom track data
-% 
+%
 % mode = 1 :   use only RDI bottom track
 %        2 :   use only own bottom track
 %        3 :   use RDI, if existent, own else (default)
 %        0 :   use not bottom track at all
 %
-% btrk_mode is the one you set to be used, btrk_used is the 
+% btrk_mode is the one you set to be used, btrk_used is the
 % the routine has used. They do not need to agree since the
 % software can override your command, e.g. in case some
 % necessary data is missing or all BTRK are bad.
@@ -150,3 +150,8 @@ p.use_sadcp = 0;
 % p.dragfac
 % p.urange/zrange
 % p.sadcp_dtok
+
+% what is the format of the output plots
+% can be multiple ones, separated by comma
+% e.g.  params.print_formats = 'ps,jpg,png';
+p.print_formats = 'png';
