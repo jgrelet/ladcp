@@ -1,4 +1,4 @@
-function [f] = misc_composefilenames(params, f)
+function misc_composefilenames(params, f)
 % function [f] = misc_composefilenames(params,stn);
 %
 % compose the output filenames, this can't be done earlier

@@ -1,4 +1,4 @@
-function p = checkinv(dr,de,der,p,ps,values)
+function checkinv(dr,de,der,p,ps,values)
 % function p = checkinv(dr,de,der,p,ps,values)
 % check inversion for consistency 
 %

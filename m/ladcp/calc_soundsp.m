@@ -1,4 +1,4 @@
-function [data,params,values,messages]=calc_soundsp(data,params,values,messages)
+function [data,values,messages]=calc_soundsp(data,params,values,messages)
 % function [data,params,values,messages] =...
 %	calc_soundsp(data,params,values,messages)
 %

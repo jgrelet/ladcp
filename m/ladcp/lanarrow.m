@@ -1,4 +1,4 @@
-function [messages,p,dr,de,der] =...
+function [messages,dr,de,der] =...
 	lanarrow(messages,values,di,p,ps)
 %function [messages,p,dr,de,der] =...
 %	lanarrow(messages,values,di,p,ps)
@@ -24,15 +24,16 @@ function [messages,p,dr,de,der] =...
 disp(' ')
 disp('LANARROW:  remove outliers in superensembles')
 
-
+down_up = ps.down_up;
+solve = ps.solve;
 ps1 = ps;
 ps1.down_up = 0;
 ps1.solve = 0;
 for n=1:ps.outlier
   if n>1
-    [messages,p,dr,ps1,de,der] = getinv(messages,values,di,p,ps1,dr);
+    [messages,dr,de,der] = getinv(messages,values,di,p,ps1,dr);
   else
-    [messages,p,dr,ps1,de,der] = getinv(messages,values,di,p,ps1);
+    [messages,dr,de,der] = getinv(messages,values,di,p,ps1);
   end
   dif = (di.ru-der.ru_oce-der.ru_ctd).^2+...
          (di.rv-der.rv_oce-der.rv_ctd).^2;
@@ -44,3 +45,6 @@ for n=1:ps.outlier
     disp(['    Giving low weight to the 1% of data scans deviating most'])
   end
 end
+ps.down_up = down_up;
+ps.solve = solve;
+

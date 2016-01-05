@@ -1,5 +1,5 @@
-function [] = prepsadcp(stn,values)
-% function [] = prepsadcp(stn,values)
+function [] = prepsadcp(p,files,values)
+% function [] = prepsadcp(p,files,values)
 %
 % prepare Ship-ADCP data for LADCP processing
 %
@@ -20,10 +20,6 @@ function [] = prepsadcp(stn,values)
 % if you do no have SADCP data to be used in the
 % LADCP processing, uncomment the next two lines. Otherwise edit the following.
 
-disp('YOU FIRST NEED TO EDIT THE FILE cruise_id/m/prepsadcp.m !')
-pause
-return
-
 % first copy the SADCP files to the raw SADCP data directory
 % data/raw_sadcp
 % In our example
@@ -40,47 +36,79 @@ return
 % again make sure that the time is in Julian days
 % In the example the cruise was in 2004 and the processing
 % stored only the day of the year not the actual year !!!
-fnames = dir('data/raw_sadcp/*.mat');
-uv = [];
-xyt = [];
-for n=1:length(fnames)
-    load(['data/raw_sadcp/',fnames(n).name])
-    if n==1
-        uv = b.vel;
-        xyt = b.nav.txy1;
-    else
-        uv = cat(3,uv,b.vel);
-        xyt = cat(2,xyt,b.nav.txy1);
-    end
+%  SADCP data file
+
+
+% initialize data arrays
+tim_sadcp = [];
+lon_sadcp = [];
+lat_sadcp = [];
+z_sadcp = [];
+u_sadcp = [];
+v_sadcp = [];
+
+if isunix
+    flname = '/m/CASSIOPEE\data-processing\SADCP\OS38\codas/cas38_ladcp.txt';
+else
+    flname = 'M:\CASSIOPEE\data-processing\SADCP\OS38\codas/cas38_ladcp.txt';  
 end
-lon_sadcp = xyt(2,:);
-lat_sadcp = xyt(3,:);
-tim_sadcp = xyt(1,:) + julian([2007 1 1 0 0 0]);
-u_sadcp = squeeze(uv(:,1,:));
-v_sadcp = squeeze(uv(:,2,:));
-z_sadcp = c.depth;
-[tim_sadcp,ind] = sort(tim_sadcp);
-lon_sadcp = lon_sadcp(ind);
-lat_sadcp = lat_sadcp(ind);
-u_sadcp = u_sadcp(:,ind);
-v_sadcp = v_sadcp(:,ind);
+fprintf('    PREPSADCP  :');
+
+% check that the SADCP file exists
+if ~exist(char(flname),'file') 
+	error('ladcp:prepsadcp', 'Cannot read S-ADCP data from: %s\nCheck the file name and its location in prepadcp.m\n', flname);
+   return
+end
+
+% read the ascii file
+ fprintf('  read %s\n', flname);
+fid = fopen(flname,'r');
+data = fscanf(fid,'%f %f %f %f %f %f\n',[6 Inf])';
+fclose(fid);
+
+% replace missing value by NaN
+data(data==999.999) = NaN;
+
+% add reference year to time (+ 2min30)
+data(:,1) = julian(datevec(datenum(p.correct_year,1,1)+data(:,1)));
 
 % restrict the data to the time of the cast
-%good = find( tim_sadcp>values.start_time-0.1 & tim_sadcp<values.end_time+0.1);
-good = find( tim_sadcp>values.start_cut-0.1 & tim_sadcp<values.end_cut+0.1);
-tim_sadcp = tim_sadcp(good);
-lat_sadcp = lat_sadcp(good);
-lon_sadcp = lon_sadcp(good);
-u_sadcp = u_sadcp(:,good);
-v_sadcp = v_sadcp(:,good);
-z_sadcp = z_sadcp;
+igood = find( data(:,1)>values.start_cut-0.1 & data(:,1)<values.end_cut+0.1 );
+data = data(igood,:);
 
-% delete deepest two bins
-z_sadcp = z_sadcp(1:end-2);
-u_sadcp = u_sadcp(1:end-2,:);
-v_sadcp = v_sadcp(1:end-2,:);
+% lon/lat
+tim_sadcp = data(:,1);
+lon_sadcp = data(:,2);
+lat_sadcp = data(:,3);
+NT = length(tim_sadcp);
 
+% compute a unique vertical grid
+z_sadcp = -unique(data(:,4));
+NDEPTH = length(z_sadcp);
+
+% load zonal/meridional velocities
+u_sadcp = NaN(NDEPTH,NT);
+v_sadcp = NaN(NDEPTH,NT);
+for it=1:NT
+  ind = find(data(:,1)==tim_sadcp(it));
+  kk = [];
+  for i=1:length(ind)
+      kk(i) = find(z_sadcp==-data(ind(i),4));
+  end
+  u_sadcp(kk,it) = data(ind,5);
+  v_sadcp(kk,it) = data(ind,6);
+end
+
+% convert velocity data in m/s
+u_sadcp = 0.01*u_sadcp;
+v_sadcp = 0.01*v_sadcp;
+
+% remove data below 1200 meters
+[zmax,imax] = max(abs(z_sadcp));
+kk = find(z_sadcp<-1200);
+z_sadcp(kk) = [];
+u_sadcp(kk,:) = [];
+v_sadcp(kk,:) = [];
 
 % store the data
-save6(['data/sadcp/sadcp',int2str0(stn,3)],...
-	'tim_sadcp','lon_sadcp','lat_sadcp','u_sadcp','v_sadcp','z_sadcp')
+save6(files.sadcp,'tim_sadcp','lon_sadcp','lat_sadcp','u_sadcp','v_sadcp','z_sadcp')

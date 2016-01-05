@@ -1,4 +1,4 @@
-function [messages,p,dr,ps,de,der]=getinv(messages,values,di,p,ps,dr,iplot)
+function [messages,dr,de,der]=getinv(messages,values,di,p,ps,dr,iplot)
 % function [messages,p,dr,ps,de,der]=getinv(messages,values,di,p,ps,dr,iplot)
 %
 % solve linear inverse problem for LADCP profiles
@@ -40,7 +40,7 @@ end
 
 
 % resolution of final profile in meter
-ps = setdefv(ps,'dz',nmedian(abs(diff(di.izm(:,1)))));
+setdefv(ps,'dz',nmedian(abs(diff(di.izm(:,1)))));
 
 
 % how much do you want to smooth the ocean profile
@@ -50,7 +50,7 @@ for n=1:imax
   smallfac(n,1) = n;
   smallfac(n,2) = 0.02/(1+abs(n-(imax/2)))*tanh(values.maxdepth/3000);
 end
-ps = setdefv(ps,'smallfac',smallfac);
+setdefv(ps,'smallfac',smallfac);
 
 
 % weigh bottom track data with distance of bottom
@@ -75,7 +75,7 @@ end
 %
 % Barotropic velocity error due to navigation error
 %
-ps = setdefv(ps,'barvelerr',2*p.nav_error/p.dt_profile);
+setdefv(ps,'barvelerr',2*p.nav_error/p.dt_profile);
 disp(['    Barotropic (navigation) velocity error : ',num2str(ps.barvelerr),' [m/s]'])
 
 
@@ -87,7 +87,7 @@ sw = nstd(di.rw(di.izd(1:maxn),:));
 ii = find(sw>0);
 sw = nmedian(sw(ii))/tan(values.down_beam_angle*pi/180);
 disp(['    Super ensemble velocity error : ',num2str(sw),' [m/s]'])
-ps = setdefv(ps,'velerr',nmax([sw,0.02])); 
+setdefv(ps,'velerr',nmax([sw,0.02])); 
 if exist('dr','var')
   if isfield(dr,'uerr')
     if any(isfinite(dr.uerr))

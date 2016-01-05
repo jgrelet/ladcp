@@ -31,7 +31,7 @@ function [] = process_cast(stn, varargin)
 % handle extra arguments
 %
 noplots  = 0;
-ndigits  = 3;  % default
+ndigits  = 5;  % default
 nVarargs = length(varargin);
 
 % loop over each extra argument
@@ -53,7 +53,10 @@ if exist('logs', 'dir') ~= exist(pwd, 'dir');
     return
 end
 
-
+% if stn is char, convert it in double
+if ischar(stn)
+  stn = str2double(stn);
+end
 %
 % clear already loaded and saved data for reloading and reprocessing
 %
@@ -75,12 +78,13 @@ ps = default_ps_object;
 % overwrite default parameters for cruise and cast
 cruise_params;
 cast_params;
-files = misc_composefilenames(p, f);
+misc_composefilenames(p, f);
 
 % 
 % prepare the various data files for easy loading
 %
-[values] = prepare_cast(p,files);
+tic
+[values] = prepare_cast(p,f);
 
 % structure messages need for warning
 messages.warn = 'LADCP WARNINGS';
@@ -89,15 +93,16 @@ messages.warnp = 'LADCP processing warnings: ';
 % load RDI data
 % and perform some simple processing steps
 %
-[data,values,messages,p,files] = rdiload(files,p,messages,values);
+[data,values,messages] = rdiload(f,p,messages,values);
 [data,messages] = misc_prepare_rdi(data,p,messages);
+fprintf(1,'Total loading files time: %4.0f seconds \n',toc);
 
 tic;					% start timer
 
 % 
 % plot the display menu
 %
-plot_menu
+menu = plot_menu;
 drawnow
 
 
@@ -105,25 +110,25 @@ drawnow
 % convolution of the loading routines for the 
 % various data sets
 %
-[data,messages] = loading(files,data,messages,p);
+[data,messages] = loading(f,data,messages,p);
 
 
 %
 % merge LADCP data with NAV and CTD
 %
-[data,p,messages,values] = mergedata(data,p,messages,values);
+[data,messages,values] = mergedata(data,p,messages,values);
 
 
 % 
 % improve the data quality by removing spikes etc
 %
-[data,p,values,messages] = improve(data,p,values,messages);
+[data,values,messages] = improve(data,p,values,messages);
 
 
 %
 % extract the bottom track
 %
-[data,p] = getbtrack(data,p,values);  
+[data] = getbtrack(data,p,values);  
 
 
 %
@@ -133,9 +138,9 @@ drawnow
 % correction. Then apply the depth dependent sound speed 
 % correction. And then recalculate the depths.
 %
-[data,p,values,messages] = calc_depth(data,p,values,messages);
-[data,p,values,messages] = calc_soundsp(data,p,values,messages);
-[data,p,values,messages] = calc_depth(data,p,values,messages);
+[data,values,messages] = calc_depth(data,p,values,messages);
+[data,values,messages] = calc_soundsp(data,p,values,messages);
+[data,values,messages] = calc_depth(data,p,values,messages);
 drawnow
 
 
@@ -143,7 +148,7 @@ drawnow
 % cut off the parts before and after the main profile
 % i.e. the surface soak and similar parts
 %
-[data,p,values,messages] = misc_cut_profile(data,p,values,messages);
+[data,values,messages] = misc_cut_profile(data,p,values,messages);
 drawnow
 
 %
@@ -172,9 +177,9 @@ drawnow
 % form super ensembles
 %
 %data1 = data;
-[p,data,messages] = prepinv(messages,data,p,[],values);
+[data,messages] = prepinv(messages,data,p,[],values);
 %[p,data1,messages] = prepinv_with_old_rotation_options(messages,data1,p,[],values);
-[di,p,data] = calc_ens_av(data,p,values);
+[di,data] = calc_ens_av(data,p,values);
 %[di1,p,data1] = calc_ens_av(data1,p,values);
 drawnow
 
@@ -183,7 +188,7 @@ drawnow
 % remove super ensemble outliers
 %
 if ps.outlier>0 | p.offsetup2down>0
-  [messages,p,dr,de,der] = lanarrow(messages,values,di,p,ps);
+  [messages,dr,de,der] = lanarrow(messages,values,di,p,ps);
 %  [messages,p,dr1,de1,der1] = lanarrow(messages,values,di1,p,ps);
 end
 
@@ -192,10 +197,10 @@ end
 % once we have a first guess profile we recompute the super ensemble
 %
 if (p.offsetup2down > 0 & length(data.izu) > 0)
-  [p,data,messages] = prepinv(messages,data,p,dr,values);
+  [data,messages] = prepinv(messages,data,p,dr,values);
 %  [p,data1,messages] = prepinv_with_old_rotation_options(messages,data1,p,dr1,values);
 %  keyboard
-  [di,p,data] = calc_ens_av(data,p,values);
+  [di,data] = calc_ens_av(data,p,values);
 end
 
  
@@ -203,16 +208,16 @@ end
 %  take advantage of presolve if it existed  ?? GK
 %  call the main inversion routine
 %
-[messages,p,dr,ps,de] = getinv(messages,values,di,p,ps,dr,1);
+[messages,dr,de] = getinv(messages,values,di,p,ps,dr,1);
 drawnow
 
 
 %
 % check inversion constraints
 % 
-p = checkinv(dr,de,der,p,ps,values);
+checkinv(dr,de,der,p,ps,values);
 if isfield(de,'bvel') 
-  p = checkbtrk(data,di,de,dr,p); 
+  checkbtrk(data,di,de,dr,p); 
 end
 
 
@@ -223,9 +228,9 @@ end
 %
 if ps.shear>0
   if ps.shear==1
-    [ds,dr,ps,p,messages] = calc_shear2(data,p,ps,dr,messages);
+    [ds,dr,messages] = calc_shear2(data,p,ps,dr,messages);
   else
-    [ds,dr,ps,p,messages] = calc_shear2(di,p,ps,dr,messages);
+    [ds,dr,messages] = calc_shear2(di,p,ps,dr,messages);
   end
 end
 
@@ -281,13 +286,13 @@ hgsave('tmp/11')
 
 disp(' ')
 disp('SAVING RESULTS')
-if length(files.res)>1
+if length(f.res)>1
   
   %
   % save results to ASCII, MATLAB and NETCDF files
   %
-  saveres(data,dr,p,ps,files,values)
-  da = savearch(values,dr,data,p,ps,files);
+  saveres(data,dr,p,ps,f,values)
+  da = savearch(values,dr,data,p,ps,f);
 
   %
   % save plots
@@ -308,18 +313,18 @@ if length(files.res)>1
       warning off
       if imac
         if findstr(p.print_formats,'ps')
-          eval(['print -depsc ',files.plots,'_' int2str(j) '.eps '])
+          eval(['print -depsc ',f.plots,'_' int2str(j) '.eps '])
         end
       else
         if findstr(p.print_formats,'ps')
-          eval(['print -dpsc ',files.plots,'_' int2str(j) '.ps '])
+          eval(['print -dpsc ',f.plots,'_' int2str(j) '.ps '])
         end
       end
       if findstr(p.print_formats,'jpg')
-        eval(['print -djpeg ',files.plots,'_' int2str(j) '.jpg '])
+        eval(['print -djpeg ',f.plots,'_' int2str(j) '.jpg '])
       end
     if findstr(p.print_formats,'png')
-       eval(['print -dpng ',files.plots,'_' int2str(j) '.png '])
+       eval(['print -dpng ',f.plots,'_' int2str(j) '.png '])
       end
       warning on
     end
@@ -330,14 +335,13 @@ if length(files.res)>1
 
   % save full information into mat file
   if p.savemat==1
-    disp(['    Saving full information to ',files.res,'_full.mat'])
-    save6([files.res,'_full.mat'])
+    disp(['    Saving full information to ',f.res,'_full.mat'])
+    save6([f.res,'_full.mat'])
   end
   
 end
 
 % switch to final result figure
-% plot_controls(1)
     
 
 %----------------------------------------------------------------------

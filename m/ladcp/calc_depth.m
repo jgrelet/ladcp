@@ -1,4 +1,4 @@
-function [data,params,values,messages]=calc_depth(data,params,values,messages)
+function [data,values,messages]=calc_depth(data,params,values,messages)
 % function [data,params,values,messages]=calc_depth(data,params,values,messages)
 %
 % Determine the depth of the LADCP system during the cast

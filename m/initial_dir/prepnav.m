@@ -1,4 +1,4 @@
-function prepnav(stn,values)
+function prepnav(params)
 % function prepnav(stn,values)
 %
 % prepare navigational data for LADCP
@@ -19,48 +19,35 @@ function prepnav(stn,values)
 % if you do no have navigational data to be used in the
 % LADCP processing, uncomment the next two lines. Otherwise edit the following.
 
-disp('YOU FIRST NEED TO EDIT THE FILE cruise_id/m/prepnav.m !')
-pause
-return
-
 
 % first copy navigational data to the raw NAV data directory
 % data/raw_nav
-% In our example here we used a Seabird CTD system which also
-% recorded navigational data. Thus we use the same data as
-% for the CTD-TIME data
-eval(['!copy z:\IFM_Leg4\CTD\for_use_uncalibrated\ATA4_',int2str0(stn,3),...
-  	'_1sec.cnv data\raw_nav'])
+global pathFile
 
-% station three was an interrupted CTD file. Thus there is no
-% full CTD-time and NAV (from CTD) data available
+% the navigation is read from the CTD file, if it exists
+fname = strcat(pathFile,'/data-processing/CTD/data/ladcp/csp',...
+  params.ladcp_station_name, '_ladcp.cnv');
 
+fprintf('    PREPNAV    :');
 
-% load this data and convert to standard format
-%
-% in this example
-% we skip the header of the file and extract the lat and lon columns
-% into 'data' and the time vector into 'timctd'
-%
-% you will have to make sure that the time is stored in Julian days
-% 
-% in this example the time came from the Seabird CTD software
-% which records only day of year within the record, so
-% we had to add the year
-[hdr,data] = read_sbe_cnv(['data\raw_nav\ATA4_',int2str0(stn,3),'_1sec.cnv']);
-timnav = data.timej + julian([hdr.nmea_utc(1),1,0,0,0,0]);
-data = [data.latitude,data.longitude];
+if exist(fname,'file')
+   fprintf('  read %s\n', fname);
+   copyfile(fname,['data/raw_nav/',...
+     params.ladcp_station_name,'.cnv']);
+   [hdr,data] = read_sbe_cnv(['data/raw_nav/',...
+     params.ladcp_station_name,'.cnv']);
+   % time (in julian days)
+   timnav = julian(datevec(data.datenum));
+   % latitude/longitude array
+   data = [data.latitude,data.longitude];
+else
+  error('ladcp:prepnav', 'file not exist: %s\nCheck the configuration of m/prepnav.m file\n', fname);
+end
 
-
-
-% To reduce the amount of data we crop the navigational data to
-% the same time as the CTD-TIME data. In our example case that
-% was an unnecessary exercise since they are the same data, but if
-% you have independent navigational data (e.g. daily navigational files)
-% this will reduce file size.
-good = find(timnav>=values.start_cut & timnav<=values.end_cut);
-timnav = timnav(good);
-data = data(good,:);
+% remove NaN values
+ind = find( isnan(timnav) | any(isnan(data),2) );
+timnav(ind) = [];
+data(ind,:) = [];
 
 % store data in the standard location
-save6(['data/nav/nav',int2str0(stn,3)],'timnav','data')
+save6(['data/nav/nav',params.ladcp_station_name],'timnav','data');

@@ -1,4 +1,4 @@
-function [d,p,messages]=getbtrack(d,p,values,messages);
+function [d,messages]=getbtrack(d,p,values,messages);
 % function [d,p,messages]=getbtrack(d,p,values,messages);
 %
 % create own bottom track in addition to the one used before
@@ -22,7 +22,7 @@ nrdi = sum(isfinite(d.hbot));
 disp(['    Found ',int2str(nrdi),' RDI bottom track values '])
 
 % set range of acceptable ranges for bottom track data
-p = setdefv(p,'btrk_range',[2 20]*(d.zd(2)-d.zd(1)));
+p.btrk_range = [2 20]*(d.zd(2)-d.zd(1));
 
 %
 %  Check if hbot values are mostly ==0

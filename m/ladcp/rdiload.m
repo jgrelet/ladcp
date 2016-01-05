@@ -1,4 +1,4 @@
-function [data,values,messages,params,files] = rdiload(files,params,messages,values)
+function [data,values,messages] = rdiload(files,params,messages,values)
 % function [data,values,messages,params] = rdiload(files,params,messages,values)
 %
 % RDILOAD Load and merge upward and downward looking ADCP raw data.

@@ -1,4 +1,4 @@
-function [data,params,values,messages] = improve(data,params,values,messages)
+function [data,values,messages] = improve(data,params,values,messages)
 % function [data,params,values,messages] = improve(data,params,values,messages)
 %
 % improve the data

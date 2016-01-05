@@ -1,4 +1,4 @@
-function plot_menu
+function h = plot_menu
 % initialize the plot menu for LADCP processing
 %
 % version 0.4	last change 16.11.2012
@@ -32,7 +32,7 @@ set(gcf,'position',[190,10+imac*100,800,696],'numbertitle','off',...
   'name','LADCP 2');
 
 % create the menu
-sfigure(1);
+h = sfigure(1);
 uicontrol('style','frame','position',[10,10,150,600]);
 uicontrol('style','frame','position',[10,620,150,120]);
 
@@ -95,22 +95,21 @@ uicontrol('style','push','position',[15,210,140,20],...
   'horizontalalignment','center','string','Inv. Weights 2',...
   'callback',{@plot_controls, 16});
 
-
-% nested function plot_controls
-% control function for LADCP plotmenu
+  % nested function
   function [] = plot_controls(obj, ~, fig)
     
-    % reloads the stored figure into the display window  
-    figload(['tmp/',int2str(fig),'.fig'],2) 
+    % reloads the stored figure into the display window
+    figload(['tmp/',int2str(fig),'.fig'],2)
     figure(1)
     
     % find selected control and set it black
     set(findobj('foregroundcolor',[1,0,0]),'foregroundcolor',[0,0,0]);
     % set selected control to red
     set(obj,'foregroundcolor',[1,0,0]);
-
+    
     
   end % end of plot_controls
 
 end % end of plot_menu
+
 

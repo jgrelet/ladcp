@@ -1,4 +1,4 @@
-function [p,d,messages]=prepinv(messages,d,p,dr,values)
+function [d,messages]=prepinv(messages,d,p,dr,values)
 % function [p,d,messages]=prepinv(messages,d,p,dr,values)
 %
 % prepare for inverse solver

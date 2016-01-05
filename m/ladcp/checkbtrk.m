@@ -1,4 +1,4 @@
-function p=checkbtrk(d,di,de,dr,p);
+function checkbtrk(d,di,de,dr,p);
 % function p=checkbtrk(d,di,de,dr,p);
 
 %

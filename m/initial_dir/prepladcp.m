@@ -1,4 +1,4 @@
-function [file] = prepladcp(stn)
+function [file] = prepladcp(params, files)
 % function [file] = prepladcp(stn)
 %
 % prepare LADCP data for LADCP processing
@@ -22,23 +22,33 @@ function [file] = prepladcp(stn)
 % data/raw_ladcp/xxx		with xxx the 3-digit station number
 
 % G.Krahmann, IFM-GEOMAR, Aug 2005
+global pathFile;
 
-disp('YOU FIRST NEED TO EDIT THE FILE cruise_id/m/prepladcp.m !')
-pause
-return
-
+% path pour windows
 if ispc
-  if ~exist(['data\raw_ladcp\',int2str0(stn,3)])
-    eval(['!mkdir data\raw_ladcp\',int2str0(stn,3)])
+  if ~exist(['data\raw_ladcp\', params.ladcp_station_name])
+    eval(['!mkdir data\raw_ladcp\',params.ladcp_station_name])
   end
 else
-  if ~exist(['data/raw_ladcp/',int2str0(stn,3)])
-    eval(['!mkdir data/raw_ladcp/',int2str0(stn,3)])
+  if ~exist(['data/raw_ladcp/',params.ladcp_station_name])
+    eval(['!mkdir data/raw_ladcp/',params.ladcp_station_name])
   end
 end
-%eval(['!del data\raw_ladcp\',int2str0(stn,3),'\*.000'])
-eval(['!copy z:\IFM_Leg4\LADCP\',int2str0(stn,3),'\',...
-'*.000 data\raw_ladcp\',int2str0(stn,3)])
+
+% downward-looking L-ADCP file
+fname = strcat( pathFile, '/data-processing/LADCP/data/CSP_D',...
+  params.ladcp_station_name, '.000');
+if exist(fname,'file')
+    copyfile(fname, files.ladcpdo);
+end
+
+% upward-looking L-ADCP file
+fname = strcat(pathFile, '/data-processing/LADCP/data/CSP_U',...
+  params.ladcp_station_name, '.000');
+if exist(fname,'file')
+   copyfile(fname, files.ladcpup);
+end
 
 % set file name
-file = ['data/raw_ladcp/',int2str0(stn,3)];
+file = ['data/raw_ladcp/',params.ladcp_station_name];
+

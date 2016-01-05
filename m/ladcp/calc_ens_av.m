@@ -1,4 +1,4 @@
-function [di,p,data] = calc_ens_av(data,p,values)
+function [di,data] = calc_ens_av(data,p,values)
 % function [di,p,data] = calc_ens_av(data,p,values)
 %
 % LADCP-2 processing software version 9+
@@ -247,7 +247,7 @@ else
     ii = find(di.bvels(3,:)>0);
     if length(ii)>0
       disp(['    Found ',int2str(length(ii)),' finite bottom track ensembles'])
-      p = setdefv(p,'btrk_wstd',median(di.bvels(3,ii))*2);
+      p.btrk_wstd = median(di.bvels(3,ii))*2;
       ii = find(di.bvels(3,:)>p.btrk_wstd | di.bvels(3,:)==0);
       disp(['    Discarded ',int2str(length(ii)),...
 	' bottom tracks velocities because of wstd  > ',num2str(p.btrk_wstd)])

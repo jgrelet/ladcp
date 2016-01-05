@@ -130,17 +130,25 @@ classdef default_p_object < dynamicprops
     
     % p.btrk_range gives minumum / maximum distance for bottom track
     % will be set to 2 / 10 binlength later
-    %  params.btrk_range = [50 300];
+    btrk_range = [50 300]
     %
     % p.btrk_wstd gives maximum accepted wstd for super ensemble averages
     %
     % this one is usually calculated from the BTRK data but you can
     % override it
-    %
-    % p.btrk_wstd = 0.1;
+    btrk_wstd
+    %btrk_wstd = 0.1;
     %
     % maximum allowed difference between reference layer W and W bottom track
     btrk_wlim = 0.0500
+    
+    % save bias and std of bottom track anomaly, used inside savearch
+    btrk_u_bias
+    btrk_u_std
+    btrk_v_bias
+    btrk_v_std
+    btrk_w_bias
+    btrk_w_std
     
     % force to recalculate bottom distance using target strength
     % this is turned off (0) by default and is being automatically
@@ -182,7 +190,7 @@ classdef default_p_object < dynamicprops
     % give compass offset in addition to declination (1) for down (2) for up
     %
     % p=setdefv(p,'hdg_offset',[0 0]);
-    
+    hdg_offset = [0 0]
     
     % COMPASS:
     % how to best adjust compass to best match

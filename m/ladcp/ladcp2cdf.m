@@ -60,7 +60,7 @@ if lbot>0
   zbot_dimID = netcdf.defDim(nc,'zbot',fix(lbot));
 end
 if lsadcp>0
-  z_sadcp_dimID = netcdf.defDim(nc,'zbot',fix(lbot));
+  z_sadcp_dimID = netcdf.defDim(nc,'zsadcp',fix(lsadcp));
 end
 lat_dimID = netcdf.defDim(nc,'lat',1);
 lon_dimID = netcdf.defDim(nc,'lon',1);

@@ -1,4 +1,4 @@
-function [data,params,messages,values] = mergedata(data,params,messages,values)
+function [data,messages,values] = mergedata(data,params,messages,values)
 % function [data,params,messages,values] =...
 %	 mergedata(data,params,messages,values)
 %

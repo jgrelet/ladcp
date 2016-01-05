@@ -1,4 +1,4 @@
-function []=saveres(data,dr,p,ps,f,values)
+function []=saveres(data,dr,p,ps,f,values) %#ok<INUSL>
 % function []=saveres(data,dr,p,ps,f,values)
 %
 % store LADCP result in RODB format
@@ -40,18 +40,18 @@ fid = fopen([f.res,'.lad'],'wt');
 %
 % write file header
 %
-fprintf(fid,['Filename    = %s\n'],f.res);
-fprintf(fid,['Date        = %s\n'],datestr(p.time_start,26));
-fprintf(fid,['Start_Time  = %s\n'],datestr(p.time_start,13));
+fprintf(fid,'Filename    = %s\n',f.res);
+fprintf(fid,'Date        = %s\n',datestr(p.time_start,26));
+fprintf(fid,'Start_Time  = %s\n',datestr(p.time_start,13));
 %[lats,lons] = pos2str([p.poss(1)+p.poss(2)/60,p.poss(3)+p.poss(4)/60]);
 %[lats,lons] = pos2str([values.lat,values.lon]);
-fprintf(fid,['Latitude    = %s\n'],num2str(values.lat));
-fprintf(fid,['Longitude   = %s\n'],num2str(values.lon));
-fprintf(fid,['Deviation   = %f\n'],values.magdev);
-fprintf(fid,['Version     = %s\n'],p.software);
-fprintf(fid,['Processed   = %s\n'],datestr(clock));
-fprintf(fid,['Units       = m:m/s:m/s:m/s\n'],[]);
-fprintf(fid,['Columns     = z:u:v:ev\n'],[]);
+fprintf(fid,'Latitude    = %7.4f\n',values.lat);
+fprintf(fid,'Longitude   = %8.4f\n',values.lon);
+fprintf(fid,'Deviation   = %f\n',values.magdev);
+fprintf(fid,'Version     = %s\n',p.software);
+fprintf(fid,'Processed   = %s\n',datestr(clock));
+fprintf(fid,'Units       = m:m/s:m/s:m/s%s\n',[]);
+fprintf(fid,'Columns     = z:u:v:ev%s\n',[]);
 if ~isfield(dr,'uerr')
  dr.uerr=dr.u*NaN;
 end
@@ -60,7 +60,7 @@ end
 %
 % write data
 %
-fprintf(fid,['%6.1f %6.3f %6.3f %6.3f \n'],[dr.z,dr.u,dr.v,dr.uerr]');
+fprintf(fid,'%6.1f %6.3f %6.3f %6.3f \n',[dr.z,dr.u,dr.v,dr.uerr]');
 
 
 %
@@ -78,19 +78,19 @@ if isfield(dr,'ubot')
   % open file
   fid = fopen([f.res,'.bot'],'wt');
 
-  fprintf(fid,['Filename    = %s\n'],f.res);
-  fprintf(fid,['Date        = %s\n'],datestr(p.time_start,26));
-  fprintf(fid,['Start_Time  = %s\n'],datestr(p.time_start,13));
+  fprintf(fid,'Filename    = %s\n',f.res);
+  fprintf(fid,'Date        = %s\n',datestr(p.time_start,26));
+  fprintf(fid,'Start_Time  = %s\n',datestr(p.time_start,13));
   [lats,lons] = pos2str([p.poss(1)+p.poss(2)/60,p.poss(3)+p.poss(4)/60]);
-  fprintf(fid,['Start_Lat   = %s\n'],lats);
-  fprintf(fid,['Start_Lon   = %s\n'],lons);
-  fprintf(fid,['Deviation   = %f\n'],values.magdev);
-  fprintf(fid,['Bottom depth= %d\n'],fix(p.zbottom));
-  fprintf(fid,['Version     = %s\n'],p.software);
-  fprintf(fid,['Processed   = %s\n'],datestr(clock));
-  fprintf(fid,['Units       = m:m/s:m/s:m/s\n'],[]);
-  fprintf(fid,['Columns     = z:u:v:err\n'],[]);
-  fprintf(fid,['%6.1f %6.3f %6.3f %6.3f\n'],...
+  fprintf(fid,'Start_Lat   = %s\n',lats);
+  fprintf(fid,'Start_Lon   = %s\n',lons);
+  fprintf(fid,'Deviation   = %f\n',values.magdev);
+  fprintf(fid,'Bottom depth= %d\n',fix(p.zbottom));
+  fprintf(fid,'Version     = %s\n',p.software);
+  fprintf(fid,'Processed   = %s\n',datestr(clock));
+  fprintf(fid,'Units       = m:m/s:m/s:m/s%s\n',[]);
+  fprintf(fid,'Columns     = z:u:v:err%s\n',[]);
+  fprintf(fid,'%6.1f %6.3f %6.3f %6.3f\n',...
             [dr.zbot,dr.ubot,dr.vbot,dr.uerrbot]');
 
   fclose(fid);
