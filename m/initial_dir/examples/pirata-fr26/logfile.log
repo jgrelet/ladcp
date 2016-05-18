@@ -1,0 +1,31 @@
+COPY CTD RAW FILES 
+    fr26049[.hex, .XMLCON, .bl] from c:\SEASOFT\PIRATA-FR26\data\ to m:\PIRATA-FR26\data-raw\CTD\ 
+    fr26049[.hex, .xmlcon, .bl] from m:\PIRATA-FR26\data-raw\CTD\ to m:\PIRATA-FR26\data-processing\CTD\data\raw\ 
+END OF CTD COPY PROCESS 
+
+ CTD SBE PROCESSING 
+!SBEBatch.exe m:\PIRATA-FR26\data-processing\CTD\batch\ladcp.batch fr26049 m:\PIRATA-FR26\data-processing\CTD 
+    End of convertion to cnv ascii for ladcp files 
+!SBEBatch.exe m:\PIRATA-FR26\data-processing\CTD\batch\codac.batch fr26049 m:\PIRATA-FR26\data-processing\CTD 
+    End of the Codac Processing 
+!SBEBatch.exe m:\PIRATA-FR26\data-processing\CTD\batch\std.batch fr26049 m:\PIRATA-FR26\data-processing\CTD 
+    End of the SBE Processing 
+!SBEBatch.exe m:\PIRATA-FR26\data-processing\CTD\batch\seaplot.batch fr26049 m:\PIRATA-FR26\data-processing\CTD 
+    End of the SeaPlot Processing 
+!ConReport.exe m:\PIRATA-FR26\data-processing\CTD\data\raw\fr26049.xmlcon m:\PIRATA-FR26\data-processing\CTD\data\reports\ 
+    Report File generated 
+!SBEBatch.exe m:\PIRATA-FR26\data-processing\CTD\batch\btl.batch fr26049 m:\PIRATA-FR26\data-processing\CTD 
+    End of the bottles .ros processing 
+!bzip2.exe -f m:\PIRATA-FR26\data-processing\CTD\data\codac\fr26049.cnv 
+    End of the file compressing for Coriolis 
+    End of the file compressing for Coriolis 
+END OF CTD SBE PROCESSING 
+
+ LADCP PROCESSING 
+RENAME LADCP FILES 
+    c:\LADCP\PIRATA-FR26\download\MADCP000.000 and c:\LADCP\PIRATA-FR26\download\SADCP000.000 to MLADCP049.000 and SLADCP049.000 
+MOVE LADCP fILE 
+    c:\LADCP\PIRATA-FR26\download\MLADCP049.000 and c:\LADCP\PIRATA-FR26\download\SLADCP049.000 to c:\LADCP\PIRATA-FR26\data\ 
+    from c:\LADCP\PIRATA-FR26\data\ to m:\PIRATA-FR26\data-raw\LADCP\ and m:\PIRATA-FR26\data-processing\LADCP\data\ 
+END OF LADCP COPY PROCESS 
+INITIALIZING LDEO ADCP PROCESSING 
