@@ -28,7 +28,7 @@ function [year, month, day, hour, minute, second] = jd2date(jd)
 %   URL:         http://home.online.no/~pjacklam
 
    nargsin = nargin;
-   error(nargchk(1, 1, nargsin));
+   narginchk(1, 1);
 
    % Adding 0.5 to JD and taking FLOOR ensures that the date is correct.
    % Here are some sample values:
@@ -88,7 +88,7 @@ function [hour, minute, second] = days2hms(days)
 %   E-mail:      pjacklam@online.no
 %   URL:         http://home.online.no/~pjacklam
 
-   error(nargchk(1, 1, nargin));
+   narginchk(1, 1);
 
    second = 86400 * days;
    hour   = fix(second/3600);           % get number of hours
