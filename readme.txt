@@ -1,4 +1,4 @@
-THIS IS A BETA VERSION
+THIS IS A BETA VERSION.
 
 It works for me and on a number of test settings.
 Please try it and report any problems or bugs to
